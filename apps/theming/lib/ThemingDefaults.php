@@ -70,32 +70,50 @@ class ThemingDefaults extends \OC_Defaults {
 	}
 
 	#[\Override]
-	public function getName() {
+	public function getName(): string {
+		if (parent::themeExist('getName')) {
+			return $this->name;
+		}
 		return strip_tags($this->appConfig->getAppValueString(ConfigLexicon::INSTANCE_NAME, $this->name));
 	}
 
 	#[\Override]
-	public function getHTMLName() {
+	public function getHTMLName(): string {
+		if (parent::themeExist('getHTMLName')) {
+			return parent::getHTMLName();
+		}
 		return $this->appConfig->getAppValueString(ConfigLexicon::INSTANCE_NAME, $this->name);
 	}
 
 	#[\Override]
-	public function getTitle() {
+	public function getTitle(): string {
+		if (parent::themeExist('getTitle')) {
+			return strip_tags($this->title);
+		}
 		return strip_tags($this->appConfig->getAppValueString(ConfigLexicon::INSTANCE_NAME, $this->title));
 	}
 
 	#[\Override]
-	public function getEntity() {
+	public function getEntity(): string {
+		if (parent::themeExist('getEntity')) {
+			return $this->entity;
+		}
 		return strip_tags($this->appConfig->getAppValueString(ConfigLexicon::INSTANCE_NAME, $this->entity));
 	}
 
 	#[\Override]
 	public function getProductName(): string {
+		if (parent::themeExist('getProductName')) {
+			return strip_tags($this->productName);
+		}
 		return strip_tags($this->appConfig->getAppValueString(ConfigLexicon::PRODUCT_NAME, $this->productName));
 	}
 
 	#[\Override]
-	public function getBaseUrl() {
+	public function getBaseUrl(): string {
+		if (parent::themeExist('getBaseUrl')) {
+			return $this->url;
+		}
 		return $this->appConfig->getAppValueString(ConfigLexicon::BASE_URL, $this->url);
 	}
 
@@ -106,19 +124,31 @@ class ThemingDefaults extends \OC_Defaults {
 	 */
 	#[\Override]
 	public function getSlogan(?string $lang = null): string {
+		if (parent::themeExist('getSlogan')) {
+			return \OCP\Util::sanitizeHTML(parent::getSlogan($lang));
+		}
 		return \OCP\Util::sanitizeHTML($this->appConfig->getAppValueString(ConfigLexicon::INSTANCE_SLOGAN, parent::getSlogan($lang)));
 	}
 
 	public function getImprintUrl(): string {
+		if (parent::themeExist('getImprintUrl')) {
+			return parent::getImprintUrl();
+		}
 		return $this->appConfig->getAppValueString(ConfigLexicon::INSTANCE_IMPRINT_URL, '');
 	}
 
 	public function getPrivacyUrl(): string {
+		if (parent::themeExist('getPrivacyUrl')) {
+			return parent::getPrivacyUrl();
+		}
 		return $this->appConfig->getAppValueString(ConfigLexicon::INSTANCE_PRIVACY_URL, '');
 	}
 
 	#[\Override]
 	public function getDocBaseUrl(): string {
+		if (parent::themeExist('getDocBaseUrl')) {
+			return $this->docBaseUrl;
+		}
 		return $this->appConfig->getAppValueString(ConfigLexicon::DOC_BASE_URL, $this->docBaseUrl);
 	}
 
