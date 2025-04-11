@@ -70,7 +70,7 @@ This file is generated from multiple sources. Included packages:
 	- version: 3.0.1
 	- license: GPL-3.0-or-later
 - @nextcloud/vue
-	- version: 8.23.1
+	- version: 8.24.0
 	- license: AGPL-3.0-or-later
 - @vueuse/core
 	- version: 11.1.0
@@ -85,7 +85,7 @@ This file is generated from multiple sources. Included packages:
 	- version: 1.5.1
 	- license: MIT
 - core-js
-	- version: 3.40.0
+	- version: 3.41.0
 	- license: MIT
 - css-loader
 	- version: 7.1.2

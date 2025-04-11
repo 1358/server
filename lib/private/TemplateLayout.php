@@ -80,12 +80,6 @@ class TemplateLayout {
 				} else {
 					Util::addScript('core', 'unified-search', 'core');
 				}
-				// Set body data-theme
-				$page->assign('enabledThemes', []);
-				if ($this->appManager->isEnabledForUser('theming') && class_exists('\OCA\Theming\Service\ThemesService')) {
-					$themesService = Server::get(\OCA\Theming\Service\ThemesService::class);
-					$page->assign('enabledThemes', $themesService->getEnabledThemes());
-				}
 
 				// Set logo link target
 				$logoUrl = $this->config->getSystemValueString('logo_url', '');
@@ -149,6 +143,13 @@ class TemplateLayout {
 				if ($user) {
 					$userDisplayName = $user->getDisplayName();
 				}
+
+				$page->assign('enabledThemes', []);
+				if ($this->appManager->isEnabledForUser('theming') && class_exists('\OCA\Theming\Service\ThemesService')) {
+					$themesService = Server::get(\OCA\Theming\Service\ThemesService::class);
+					$page->assign('enabledThemes', $themesService->getEnabledThemes());
+				}
+
 				$page->assign('user_displayname', $userDisplayName);
 				$page->assign('user_uid', \OC_User::getUser());
 				break;
@@ -156,13 +157,6 @@ class TemplateLayout {
 				$page = $this->templateManager->getTemplate('core', 'layout.public');
 				$page->assign('appid', $appId);
 				$page->assign('bodyid', 'body-public');
-
-				// Set body data-theme
-				$page->assign('enabledThemes', []);
-				if ($this->appManager->isEnabledForUser('theming') && class_exists('\OCA\Theming\Service\ThemesService')) {
-					$themesService = Server::get(\OCA\Theming\Service\ThemesService::class);
-					$page->assign('enabledThemes', $themesService->getEnabledThemes());
-				}
 
 				// Set logo link target
 				$logoUrl = $this->config->getSystemValueString('logo_url', '');
@@ -203,6 +197,10 @@ class TemplateLayout {
 		$page->assign('locale', $locale);
 		$page->assign('direction', $direction);
 
+		// Set body data-theme
+		$themesService = Server::get(\OCA\Theming\Service\ThemesService::class);
+		$page->assign('enabledThemes', $themesService->getEnabledThemes());
+
 		if ($this->config->getSystemValueBool('installed', false)) {
 			if (empty(self::$versionHash)) {
 				$v = $this->appManager->getAppInstalledVersions();
@@ -214,8 +212,7 @@ class TemplateLayout {
 		}
 
 		// Add the js files
-		// TODO: remove deprecated OC_Util injection
-		$jsFiles = self::findJavascriptFiles(array_merge(\OC_Util::$scripts, Util::getScripts()));
+		$jsFiles = self::findJavascriptFiles(Util::getScripts());
 		$page->assign('jsfiles', []);
 		if ($this->config->getSystemValueBool('installed', false) && $renderAs != TemplateResponse::RENDER_AS_ERROR) {
 			// this is on purpose outside of the if statement below so that the initial state is prefilled (done in the getConfig() call)

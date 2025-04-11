@@ -843,6 +843,12 @@
       <code><![CDATA[test]]></code>
     </TooManyArguments>
   </file>
+  <file src="apps/files_reminders/lib/Model/RichReminder.php">
+    <ConstructorSignatureMismatch>
+      <code><![CDATA[public function __construct(]]></code>
+      <code><![CDATA[public function __construct(]]></code>
+    </ConstructorSignatureMismatch>
+  </file>
   <file src="apps/files_sharing/lib/Controller/ShareAPIController.php">
     <RedundantCast>
       <code><![CDATA[(int)$code]]></code>
@@ -2037,11 +2043,6 @@
       <code><![CDATA[!$isDefaultTemplates]]></code>
     </RedundantCondition>
   </file>
-  <file src="lib/private/Files/Type/Detection.php">
-    <ParamNameMismatch>
-      <code><![CDATA[$mimetype]]></code>
-    </ParamNameMismatch>
-  </file>
   <file src="lib/private/Files/View.php">
     <InvalidScalarArgument>
       <code><![CDATA[$mtime]]></code>
@@ -2605,11 +2606,6 @@
     <UndefinedClass>
       <code><![CDATA[\Test\Util\User\Dummy]]></code>
     </UndefinedClass>
-  </file>
-  <file src="lib/private/legacy/OC_Util.php">
-    <InvalidReturnType>
-      <code><![CDATA[void]]></code>
-    </InvalidReturnType>
   </file>
   <file src="lib/public/AppFramework/ApiController.php">
     <NoInterfaceProperties>
