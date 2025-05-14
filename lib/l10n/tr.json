@@ -199,6 +199,7 @@
     "Path is already shared with this group" : "Bu yol bu grup ile zaten paylaşılmış",
     "Link sharing is not allowed" : "Bağlantı paylaşımına izin verilmiyor",
     "Public upload is not allowed" : "Herkese açık yüklemeye izin verilmiyor",
+    "You cannot share a folder that contains other shares" : "Başka paylaşımların bulunduğu bir klasörü paylaşamazsınız",
     "Sharing is disabled" : "Paylaşım kullanımdan kaldırılmış",
     "Sharing is disabled for you" : "Paylaşım sizin için kullanımdan kaldırılmış",
     "Cannot share with the share owner" : "Paylaşımı sahibi ile paylaşamazsınız",
@@ -270,6 +271,7 @@
     "A valid Login must be provided" : "Geçerli bir kullanıcı adı yazmalısınız",
     "Login contains whitespace at the beginning or at the end" : "Kullanıcı adının başında ya da sonunda boşluk var",
     "Login must not consist of dots only" : "Kullanıcı adı yalnızca noktalardan oluşamaz",
+    "Login is too long" : "Kullanıcı adı çok uzun",
     "Login is invalid because files already exist for this user" : "Kullanıcı adı geçersiz, bu kullanıcı için zaten bazı dosyalar var",
     "Account disabled" : "Hesap kullanımdan kaldırılmış",
     "Login canceled by app" : "Oturum açma uygulama tarafından iptal edildi",
@@ -326,7 +328,6 @@
     "The audio to transcribe" : "Yazıya dönüştürülecek ses",
     "Transcription" : "Yazıya dönüştürme",
     "The transcribed text" : "Dönüştürülen yazı",
-    "ContextAgent" : "Bağlam aracısı",
     "Chat with an agent" : "Bir aracı ile sohbet edin",
     "Chat message" : "Sohbet iletisi",
     "A chat message to send to the agent." : "Aracıya gönderilecek sohbet iletisi.",
@@ -454,7 +455,6 @@
     "Click the button below to open it." : "Açmak için aşağıdaki düğmeye tıklayın.",
     "File is currently busy, please try again later" : "Dosya şu anda meşgul. Lütfen bir süre sonra yeniden deneyin",
     "Cannot download file" : "Dosya indirilemedi",
-    "Ensure there is a file called \".ocdata\" in the root of the data directory." : "Veri klasörü kökünde \".ocdata\" adında bir dosya bulunduğundan emin olun.",
-    "Path contains files shared with you" : "Yolda sizinle paylaşılmış dosyalar var"
+    "Ensure there is a file called \".ocdata\" in the root of the data directory." : "Veri klasörü kökünde \".ocdata\" adında bir dosya bulunduğundan emin olun."
 },"pluralForm" :"nplurals=2; plural=(n > 1);"
 }

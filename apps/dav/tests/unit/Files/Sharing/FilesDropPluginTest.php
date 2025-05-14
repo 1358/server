@@ -46,22 +46,29 @@ class FilesDropPluginTest extends TestCase {
 		$this->request = $this->createMock(RequestInterface::class);
 		$this->response = $this->createMock(ResponseInterface::class);
 
-		$this->response->expects($this->never())
-			->method($this->anything());
-
 		$attributes = $this->createMock(IAttributes::class);
 		$this->share->expects($this->any())
 			->method('getAttributes')
 			->willReturn($attributes);
+
+		$this->share
+			->method('getToken')
+			->willReturn('token');
 	}
 
 	public function testInitialize(): void {
-		$this->server->expects($this->once())
+		$this->server->expects($this->at(0))
 			->method('on')
 			->with(
 				$this->equalTo('beforeMethod:*'),
 				$this->equalTo([$this->plugin, 'beforeMethod']),
 				$this->equalTo(999)
+			);
+		$this->server->expects($this->at(1))
+			->method('on')
+			->with(
+				$this->equalTo('method:MKCOL'),
+				$this->equalTo([$this->plugin, 'onMkcol']),
 			);
 
 		$this->plugin->initialize($this->server);
@@ -86,7 +93,7 @@ class FilesDropPluginTest extends TestCase {
 			->willReturn('PUT');
 
 		$this->request->method('getPath')
-			->willReturn('file.txt');
+			->willReturn('/files/token/file.txt');
 
 		$this->request->method('getBaseUrl')
 			->willReturn('https://example.com');
@@ -97,7 +104,7 @@ class FilesDropPluginTest extends TestCase {
 
 		$this->request->expects($this->once())
 			->method('setUrl')
-			->with('https://example.com/file.txt');
+			->with('https://example.com/files/token/file.txt');
 
 		$this->plugin->beforeMethod($this->request, $this->response);
 	}
@@ -111,7 +118,7 @@ class FilesDropPluginTest extends TestCase {
 			->willReturn('PUT');
 
 		$this->request->method('getPath')
-			->willReturn('file.txt');
+			->willReturn('/files/token/file.txt');
 
 		$this->request->method('getBaseUrl')
 			->willReturn('https://example.com');
@@ -127,12 +134,12 @@ class FilesDropPluginTest extends TestCase {
 
 		$this->request->expects($this->once())
 			->method('setUrl')
-			->with($this->equalTo('https://example.com/file (2).txt'));
+			->with($this->equalTo('https://example.com/files/token/file (2).txt'));
 
 		$this->plugin->beforeMethod($this->request, $this->response);
 	}
 
-	public function testNoMKCOL(): void {
+	public function testNoMKCOLWithoutNickname(): void {
 		$this->plugin->enable();
 		$this->plugin->setView($this->view);
 		$this->plugin->setShare($this->share);
@@ -145,7 +152,27 @@ class FilesDropPluginTest extends TestCase {
 		$this->plugin->beforeMethod($this->request, $this->response);
 	}
 
-	public function testNoSubdirPut(): void {
+	public function testMKCOLWithNickname(): void {
+		$this->plugin->enable();
+		$this->plugin->setView($this->view);
+		$this->plugin->setShare($this->share);
+
+		$this->request->method('getMethod')
+			->willReturn('MKCOL');
+
+		$this->request->method('hasHeader')
+			->with('X-NC-Nickname')
+			->willReturn(true);
+		$this->request->method('getHeader')
+			->with('X-NC-Nickname')
+			->willReturn('nickname');
+
+		$this->expectNotToPerformAssertions();
+
+		$this->plugin->beforeMethod($this->request, $this->response);
+	}
+
+	public function testSubdirPut(): void {
 		$this->plugin->enable();
 		$this->plugin->setView($this->view);
 		$this->plugin->setShare($this->share);
@@ -153,15 +180,22 @@ class FilesDropPluginTest extends TestCase {
 		$this->request->method('getMethod')
 			->willReturn('PUT');
 
+		$this->request->method('hasHeader')
+			->with('X-NC-Nickname')
+			->willReturn(true);
+		$this->request->method('getHeader')
+			->with('X-NC-Nickname')
+			->willReturn('nickname');
+
 		$this->request->method('getPath')
-			->willReturn('folder/file.txt');
+			->willReturn('/files/token/folder/file.txt');
 
 		$this->request->method('getBaseUrl')
 			->willReturn('https://example.com');
 
 		$this->view->method('file_exists')
 			->willReturnCallback(function ($path) {
-				if ($path === 'file.txt' || $path === '/file.txt') {
+				if ($path === 'file.txt' || $path === '/folder/file.txt') {
 					return true;
 				} else {
 					return false;
@@ -170,8 +204,70 @@ class FilesDropPluginTest extends TestCase {
 
 		$this->request->expects($this->once())
 			->method('setUrl')
-			->with($this->equalTo('https://example.com/file (2).txt'));
+			->with($this->equalTo('https://example.com/files/token/nickname/folder/file.txt'));
 
 		$this->plugin->beforeMethod($this->request, $this->response);
+	}
+
+	public function testRecursiveFolderCreation(): void {
+		$this->plugin->enable();
+		$this->plugin->setView($this->view);
+		$this->plugin->setShare($this->share);
+
+		$this->request->method('getMethod')
+			->willReturn('PUT');
+		$this->request->method('hasHeader')
+			->with('X-NC-Nickname')
+			->willReturn(true);
+		$this->request->method('getHeader')
+			->with('X-NC-Nickname')
+			->willReturn('nickname');
+		
+		$this->request->method('getPath')
+			->willReturn('/files/token/folder/subfolder/file.txt');
+		$this->request->method('getBaseUrl')
+			->willReturn('https://example.com');
+		$this->view->method('file_exists')
+			->willReturn(false);
+
+		$this->view->expects($this->exactly(4))
+			->method('file_exists')
+			->withConsecutive(
+				['/nickname'],
+				['/nickname/folder'],
+				['/nickname/folder/subfolder'],
+				['/nickname/folder/subfolder/file.txt']
+			)
+			->willReturnOnConsecutiveCalls(
+				false,
+				false,
+				false,
+				false,
+			);
+		$this->view->expects($this->exactly(3))
+			->method('mkdir')
+			->withConsecutive(
+				['/nickname'],
+				['/nickname/folder'],
+				['/nickname/folder/subfolder'],
+			);
+
+		$this->request->expects($this->once())
+			->method('setUrl')
+			->with($this->equalTo('https://example.com/files/token/nickname/folder/subfolder/file.txt'));
+		$this->plugin->beforeMethod($this->request, $this->response);
+	}
+
+	public function testOnMkcol(): void {
+		$this->plugin->enable();
+		$this->plugin->setView($this->view);
+		$this->plugin->setShare($this->share);
+
+		$this->response->expects($this->once())
+			->method('setStatus')
+			->with(201);
+
+		$response = $this->plugin->onMkcol($this->request, $this->response);
+		$this->assertFalse($response);
 	}
 }

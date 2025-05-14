@@ -488,6 +488,14 @@ class AppConfig implements IAppConfig {
 	 * @see VALUE_ARRAY
 	 */
 	public function getValueType(string $app, string $key, ?bool $lazy = null): int {
+		$type = self::VALUE_MIXED;
+		$ignorable = $lazy ?? false;
+		$this->matchAndApplyLexiconDefinition($app, $key, $ignorable, $type);
+		if ($type !== self::VALUE_MIXED) {
+			// a modified $type means config key is set in Lexicon
+			return $type;
+		}
+
 		$this->assertParams($app, $key);
 		$this->loadConfig($app, $lazy);
 
@@ -1423,6 +1431,9 @@ class AppConfig implements IAppConfig {
 			'globalsiteselector' => [
 				'/^gss\.jwt\.key$/',
 			],
+			'gpgmailer' => [
+				'/^GpgServerKey$/',
+			],
 			'integration_discourse' => [
 				'/^private_key$/',
 				'/^public_key$/',
@@ -1477,6 +1488,9 @@ class AppConfig implements IAppConfig {
 				'/^client_secret$/',
 				'/^oauth_instance_url$/',
 			],
+			'maps' => [
+				'/^mapboxAPIKEY$/',
+			],
 			'notify_push' => [
 				'/^cookie$/',
 			],
@@ -1514,11 +1528,11 @@ class AppConfig implements IAppConfig {
 				'/^slogan$/',
 				'/^url$/',
 			],
-			'user_ldap' => [
-				'/^(s..)?ldap_agent_password$/',
-			],
 			'twofactor_gateway' => [
 				'/^.*token$/',
+			],
+			'user_ldap' => [
+				'/^(s..)?ldap_agent_password$/',
 			],
 			'user_saml' => [
 				'/^idp-x509cert$/',

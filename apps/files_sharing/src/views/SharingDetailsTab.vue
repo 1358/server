@@ -38,7 +38,7 @@
 					<NcCheckboxRadioSwitch :button-variant="true"
 						data-cy-files-sharing-share-permissions-bundle="upload-edit"
 						:checked.sync="sharingPermission"
-						:value="bundledPermissions.ALL.toString()"
+						:value="allPermissions"
 						name="sharing_permission_radio"
 						type="radio"
 						button-variant-grouped="vertical"
@@ -400,6 +400,9 @@ export default {
 			}
 			}
 		},
+		allPermissions() {
+			return this.isFolder ? this.bundledPermissions.ALL.toString() : this.bundledPermissions.ALL_FILE.toString()
+		},
 		/**
 		 * Can the sharee edit the shared file ?
 		 */
@@ -494,26 +497,6 @@ export default {
 				this.share.expireDate = enabled
 					? this.formatDateToString(this.defaultExpiryDate)
 					: ''
-			},
-		},
-		/**
-		 * Is the current share password protected ?
-		 *
-		 * @return {boolean}
-		 */
-		isPasswordProtected: {
-			get() {
-				return this.config.enforcePasswordForPublicLink
-					|| !!this.share.password
-			},
-			async set(enabled) {
-				if (enabled) {
-					this.share.password = await GeneratePassword(true)
-					this.$set(this.share, 'newPassword', this.share.password)
-				} else {
-					this.share.password = ''
-					this.$delete(this.share, 'newPassword')
-				}
 			},
 		},
 		/**
@@ -732,8 +715,15 @@ export default {
 				[ATOMIC_PERMISSIONS.DELETE]: this.t('files_sharing', 'Delete'),
 			}
 
-			return [ATOMIC_PERMISSIONS.READ, ATOMIC_PERMISSIONS.CREATE, ATOMIC_PERMISSIONS.UPDATE, ...(this.resharingIsPossible ? [ATOMIC_PERMISSIONS.SHARE] : []), ATOMIC_PERMISSIONS.DELETE]
-				.filter((permission) => hasPermissions(this.share.permissions, permission))
+			const permissionsList = [
+				ATOMIC_PERMISSIONS.READ,
+				...(this.isFolder ? [ATOMIC_PERMISSIONS.CREATE] : []),
+				ATOMIC_PERMISSIONS.UPDATE,
+				...(this.resharingIsPossible ? [ATOMIC_PERMISSIONS.SHARE] : []),
+				...(this.isFolder ? [ATOMIC_PERMISSIONS.DELETE] : []),
+			]
+
+			return permissionsList.filter((permission) => hasPermissions(this.share.permissions, permission))
 				.map((permission, index) => index === 0
 					? translatedPermissions[permission]
 					: translatedPermissions[permission].toLocaleLowerCase(getLanguage()))
@@ -851,6 +841,13 @@ export default {
 			isReshareChecked = this.canReshare,
 		} = {}) {
 			// calc permissions if checked
+
+			if (!this.isFolder && (isCreateChecked || isDeleteChecked)) {
+				logger.debug('Ignoring create/delete permissions for file share — only available for folders')
+				isCreateChecked = false
+				isDeleteChecked = false
+			}
+
 			const permissions = 0
 				| (isReadChecked ? ATOMIC_PERMISSIONS.READ : 0)
 				| (isCreateChecked ? ATOMIC_PERMISSIONS.CREATE : 0)
@@ -873,8 +870,9 @@ export default {
 		async initializeAttributes() {
 
 			if (this.isNewShare) {
-				if (this.isPasswordEnforced && this.isPublicShare) {
+				if ((this.config.enableLinkPasswordByDefault || this.isPasswordEnforced) && this.isPublicShare) {
 					this.$set(this.share, 'newPassword', await GeneratePassword(true))
+					this.$set(this.share, 'password', this.share.newPassword)
 					this.advancedSectionAccordionExpanded = true
 				}
 				/* Set default expiration dates if configured */

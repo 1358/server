@@ -313,7 +313,6 @@
     "The audio to transcribe" : "Transkribatzeko audioa",
     "Transcription" : "Transkripzioa",
     "The transcribed text" : "Transkribatutako testua",
-    "ContextAgent" : "ContextAgent",
     "Chat with an agent" : "Txateatu agente batekin",
     "Chat message" : "Txat mezua",
     "A chat message to send to the agent." : "Agenteari bidaltzeko txat mezu bat.",
@@ -441,7 +440,6 @@
     "Click the button below to open it." : "Egin klik beheko botoian hura irekitzeko.",
     "File is currently busy, please try again later" : "Fitxategia lanpetuta dago, saiatu berriro geroago",
     "Cannot download file" : "Ezin da fitxategia deskargatu",
-    "Ensure there is a file called \".ocdata\" in the root of the data directory." : "Ziurtatu datu direktorioaren erroan \".ocdata\" izeneko fitxategia dagoela.",
-    "Path contains files shared with you" : "Bide-izenak zurekin partekatutako fitxategiak dauzka"
+    "Ensure there is a file called \".ocdata\" in the root of the data directory." : "Ziurtatu datu direktorioaren erroan \".ocdata\" izeneko fitxategia dagoela."
 },"pluralForm" :"nplurals=2; plural=(n != 1);"
 }

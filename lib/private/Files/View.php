@@ -10,6 +10,7 @@ namespace OC\Files;
 use Icewind\Streams\CallbackWrapper;
 use OC\Files\Mount\MoveableMount;
 use OC\Files\Storage\Storage;
+use OC\Files\Storage\Wrapper\Quota;
 use OC\Share\Share;
 use OC\User\LazyUser;
 use OC\User\Manager as UserManager;
@@ -1466,8 +1467,7 @@ class View {
 	public function addSubMounts(FileInfo $info, $extOnly = false): void {
 		$mounts = Filesystem::getMountManager()->findIn($info->getPath());
 		$info->setSubMounts(array_filter($mounts, function (IMountPoint $mount) use ($extOnly) {
-			$subStorage = $mount->getStorage();
-			return !($extOnly && $subStorage instanceof \OCA\Files_Sharing\SharedStorage);
+			return !($extOnly && $mount instanceof SharedMount);
 		}));
 	}
 
@@ -1579,11 +1579,21 @@ class View {
 						// Create parent folders if the mountpoint is inside a subfolder that doesn't exist yet
 						if (!isset($files[$entryName])) {
 							try {
+								[$storage, ] = $this->resolvePath($path . '/' . $entryName);
+								// make sure we can create the mountpoint folder, even if the user has a quota of 0
+								if ($storage->instanceOfStorage(Quota::class)) {
+									$storage->enableQuota(false);
+								}
+
 								if ($this->mkdir($path . '/' . $entryName) !== false) {
 									$info = $this->getFileInfo($path . '/' . $entryName);
 									if ($info !== false) {
 										$files[$entryName] = $info;
 									}
+								}
+
+								if ($storage->instanceOfStorage(Quota::class)) {
+									$storage->enableQuota(true);
 								}
 							} catch (\Exception $e) {
 								// Creating the parent folder might not be possible, for example due to a lack of permissions.

@@ -558,6 +558,7 @@ class ShareAPIController extends OCSController {
 	 * 200: Share created
 	 */
 	#[NoAdminRequired]
+	#[UserRateLimit(limit: 20, period: 600)]
 	public function createShare(
 		?string $path = null,
 		?int $permissions = null,
@@ -1292,16 +1293,11 @@ class ShareAPIController extends OCSController {
 			|| $share->getShareType() === IShare::TYPE_EMAIL) {
 
 			// Update hide download state
-			$attributes = $share->getAttributes() ?? $share->newAttributes();
 			if ($hideDownload === 'true') {
 				$share->setHideDownload(true);
-				$attributes->setAttribute('permissions', 'download', false);
 			} elseif ($hideDownload === 'false') {
 				$share->setHideDownload(false);
-				$attributes->setAttribute('permissions', 'download', true);
 			}
-			$share->setAttributes($attributes);
-
 
 			// If either manual permissions are specified or publicUpload
 			// then we need to also update the permissions of the share
@@ -2122,6 +2118,8 @@ class ShareAPIController extends OCSController {
 				$hideDownload = $hideDownload && $originalShare->getHideDownload();
 				// allow download if already allowed by previous share or when the current share allows downloading
 				$canDownload = $canDownload || $inheritedAttributes === null || $inheritedAttributes->getAttribute('permissions', 'download') !== false;
+			} elseif ($node->getStorage()->instanceOfStorage(Storage::class)) {
+				$canDownload = true; // in case of federation storage, we can expect the download to be activated by default
 			}
 		}
 
@@ -2150,7 +2148,7 @@ class ShareAPIController extends OCSController {
 	 * 200: The email notification was sent successfully
 	 */
 	#[NoAdminRequired]
-	#[UserRateLimit(limit: 5, period: 120)]
+	#[UserRateLimit(limit: 10, period: 600)]
 	public function sendShareEmail(string $id, $password = ''): DataResponse {
 		try {
 			$share = $this->getShareById($id);

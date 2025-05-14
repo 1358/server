@@ -326,7 +326,6 @@
     "The audio to transcribe" : "O audio para transcribir",
     "Transcription" : "Transcrición",
     "The transcribed text" : "O texto transcrito",
-    "ContextAgent" : "Axente de contexto",
     "Chat with an agent" : "Parolar cun axente",
     "Chat message" : "Mensaxe de parola",
     "A chat message to send to the agent." : "Unha mensaxe de parola para enviar ao axente.",
@@ -454,7 +453,6 @@
     "Click the button below to open it." : "Prema no botón de embaixo para abrilo.",
     "File is currently busy, please try again later" : "O ficheiro está ocupado neste momento, ténteo máis adiante.",
     "Cannot download file" : "Non é posíbel descargar o ficheiro",
-    "Ensure there is a file called \".ocdata\" in the root of the data directory." : "Asegúrese de que existe un ficheiro chamado «.ocdata» na raíz do directorio de datos.",
-    "Path contains files shared with you" : "A ruta contén ficheiros compartidos con Vde."
+    "Ensure there is a file called \".ocdata\" in the root of the data directory." : "Asegúrese de que existe un ficheiro chamado «.ocdata» na raíz do directorio de datos."
 },"pluralForm" :"nplurals=2; plural=(n != 1);"
 }

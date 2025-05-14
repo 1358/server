@@ -190,7 +190,8 @@ OC.L10N.register(
     "Terms of service" : "Käyttöehdot",
     "Upload files to {folder}" : "Lähetä tiedostot kansioon {folder}",
     "{ownerDisplayName} shared a folder with you." : "{ownerDisplayName} jakoi kansion kanssasi.",
-    "Nickname" : "Nimimerkki",
+    "Name" : "Nimi",
+    "Enter your name" : "Kirjoita nimesi",
     "Share with {userName}" : "Jaa käyttäjän {userName} kanssa",
     "Share with group" : "Jaa ryhmän kanssa",
     "Share in conversation" : "Jaa keskustelussa",
@@ -305,7 +306,6 @@ OC.L10N.register(
     "Search for share recipients" : "Etsi jaon vastaanottajia",
     "No recommendations. Start typing." : "Ei suosituksia. Aloita kirjoittaminen.",
     "Password field can't be empty" : "Salasanakenttä ei voi olla tyhjä",
-    "Allow download" : "Salli lataus",
-    "Enter your name" : "Kirjoita nimesi"
+    "Allow download" : "Salli lataus"
 },
 "nplurals=2; plural=(n != 1);");
