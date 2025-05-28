@@ -65,7 +65,7 @@ class OC_Defaults {
 	/**
 	 * @param string $method
 	 */
-	private function themeExist($method) {
+	protected function themeExist($method) {
 		if (isset($this->theme) && method_exists($this->theme, $method)) {
 			return true;
 		}
@@ -331,5 +331,19 @@ class OC_Defaults {
 			return $this->theme->getProductName();
 		}
 		return $this->defaultProductName;
+	}
+
+	public function getImprintUrl() : string {
+		if ($this->themeExist('getImprintUrl')) {
+			return $this->theme->getImprintUrl();
+		}
+		return '';
+	}
+
+	public function getPrivacyUrl() : string {
+		if ($this->themeExist('getPrivacyUrl')) {
+			return $this->theme->getPrivacyUrl();
+		}
+		return '';
 	}
 }

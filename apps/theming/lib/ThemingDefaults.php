@@ -67,27 +67,45 @@ class ThemingDefaults extends \OC_Defaults {
 		$this->docBaseUrl = parent::getDocBaseUrl();
 	}
 
-	public function getName() {
+	public function getName(): string {
+		if (parent::themeExist('getName')) {
+			return $this->name;
+		}
 		return strip_tags($this->config->getAppValue('theming', 'name', $this->name));
 	}
 
-	public function getHTMLName() {
+	public function getHTMLName(): string {
+		if (parent::themeExist('getHTMLName')) {
+			return parent::getHTMLName();
+		}
 		return $this->config->getAppValue('theming', 'name', $this->name);
 	}
 
-	public function getTitle() {
+	public function getTitle() : string {
+		if (parent::themeExist('getTitle')) {
+			return strip_tags($this->title);
+		}
 		return strip_tags($this->config->getAppValue('theming', 'name', $this->title));
 	}
 
-	public function getEntity() {
+	public function getEntity() : string {
+		if (parent::themeExist('getEntity')) {
+			return $this->entity;
+		}
 		return strip_tags($this->config->getAppValue('theming', 'name', $this->entity));
 	}
 
-	public function getProductName() {
+	public function getProductName() : string {
+		if (parent::themeExist("getProductName")) {
+			return strip_tags($this->productName);
+		}
 		return strip_tags($this->config->getAppValue('theming', 'productName', $this->productName));
 	}
 
-	public function getBaseUrl() {
+	public function getBaseUrl() : string {
+		if (parent::themeExist('getBaseUrl')) {
+			return $this->url;
+		}
 		return $this->config->getAppValue('theming', 'url', $this->url);
 	}
 
@@ -96,19 +114,31 @@ class ThemingDefaults extends \OC_Defaults {
 	 * @psalm-suppress InvalidReturnStatement
 	 * @psalm-suppress InvalidReturnType
 	 */
-	public function getSlogan(?string $lang = null) {
+	public function getSlogan(?string $lang = null) : string {
+		if (parent::themeExist('getSlogan')) {
+			return \OCP\Util::sanitizeHTML(parent::getSlogan($lang));
+		}
 		return \OCP\Util::sanitizeHTML($this->config->getAppValue('theming', 'slogan', parent::getSlogan($lang)));
 	}
 
-	public function getImprintUrl() {
+	public function getImprintUrl() : string {
+		if (parent::themeExist('getImprintUrl')) {
+			return parent::getImprintUrl();
+		}
 		return (string)$this->config->getAppValue('theming', 'imprintUrl', '');
 	}
 
-	public function getPrivacyUrl() {
+	public function getPrivacyUrl() : string {
+		if (parent::themeExist('getPrivacyUrl')) {
+			return parent::getPrivacyUrl();
+		}
 		return (string)$this->config->getAppValue('theming', 'privacyUrl', '');
 	}
 
 	public function getDocBaseUrl() {
+		if (parent::themeExist('getDocBaseUrl')) {
+			return $this->docBaseUrl;
+		}
 		return (string)$this->config->getAppValue('theming', 'docBaseUrl', $this->docBaseUrl);
 	}
 
