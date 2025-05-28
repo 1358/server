@@ -14,6 +14,7 @@ use OC\Hooks\PublicEmitter;
 use OC\User\User;
 use OCP\Comments\ICommentsManager;
 use OCP\EventDispatcher\IEventDispatcher;
+use OCP\Files\FileInfo;
 use OCP\Files\Storage\IStorageFactory;
 use OCP\IConfig;
 use OCP\IURLGenerator;
@@ -496,7 +497,7 @@ class UserTest extends TestCase {
 		$this->assertEquals(2, $hooksCalled);
 	}
 
-	public function dataDeleteHooks() {
+	public static function dataDeleteHooks(): array {
 		return [
 			[true, 2],
 			[false, 1],
@@ -632,7 +633,7 @@ class UserTest extends TestCase {
 			->onlyMethods(['getHome'])
 			->setConstructorArgs(['foo', $backend, $this->dispatcher, null, $config])
 			->getMock();
-		
+
 		$user->expects(self::atLeastOnce())
 			->method('getHome')
 			->willReturn('/home/path');
@@ -650,7 +651,7 @@ class UserTest extends TestCase {
 		$this->restoreService(\OCP\Comments\ICommentsManager::class);
 	}
 
-	public function dataGetCloudId(): array {
+	public static function dataGetCloudId(): array {
 		return [
 			['https://localhost:8888/nextcloud', 'foo@localhost:8888/nextcloud'],
 			['http://localhost:8888/nextcloud', 'foo@http://localhost:8888/nextcloud'],
@@ -834,8 +835,8 @@ class UserTest extends TestCase {
 		$config->method('getAppValue')
 			->will($this->returnValueMap($appValueMap));
 
-		$quota = $user->getQuota();
-		$this->assertEquals('none', $quota);
+		$this->assertEquals('none', $user->getQuota());
+		$this->assertEquals(FileInfo::SPACE_UNLIMITED, $user->getQuotaBytes());
 	}
 
 	public function testGetDefaultUnlimitedQuotaForbidden(): void {
@@ -868,8 +869,8 @@ class UserTest extends TestCase {
 		$config->method('getAppValue')
 			->will($this->returnValueMap($appValueMap));
 
-		$quota = $user->getQuota();
-		$this->assertEquals('1 GB', $quota);
+		$this->assertEquals('1 GB', $user->getQuota());
+		$this->assertEquals(1024 * 1024 * 1024, $user->getQuotaBytes());
 	}
 
 	public function testSetQuotaAddressNoChange(): void {
@@ -964,7 +965,7 @@ class UserTest extends TestCase {
 				null,
 				$config,
 			])
-			->setMethods(['isEnabled', 'triggerChange'])
+			->onlyMethods(['isEnabled', 'triggerChange'])
 			->getMock();
 
 		$user->expects($this->once())
@@ -998,7 +999,7 @@ class UserTest extends TestCase {
 				null,
 				$config,
 			])
-			->setMethods(['isEnabled', 'triggerChange'])
+			->onlyMethods(['isEnabled', 'triggerChange'])
 			->getMock();
 
 		$user->expects($this->once())

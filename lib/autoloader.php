@@ -22,10 +22,8 @@ class Autoloader {
 
 	/**
 	 * Optional low-latency memory cache for class to path mapping.
-	 *
-	 * @var \OC\Memcache\Cache
 	 */
-	protected $memoryCache;
+	protected ?ICache $memoryCache = null;
 
 	/**
 	 * Autoloader constructor.
@@ -97,10 +95,6 @@ class Autoloader {
 			} catch (AppPathNotFoundException) {
 				// App not found, ignore
 			}
-		} elseif ($class === 'Test\\TestCase') {
-			// This File is considered public API, so we make sure that the class
-			// can still be loaded, although the PSR-4 paths have not been loaded.
-			$paths[] = \OC::$SERVERROOT . '/tests/lib/TestCase.php';
 		}
 		return $paths;
 	}
@@ -127,13 +121,13 @@ class Autoloader {
 	 * @throws AutoloadNotAllowedException
 	 */
 	public function load(string $class): bool {
+		if (class_exists($class, false)) {
+			return false;
+		}
+
 		$pathsToRequire = null;
 		if ($this->memoryCache) {
 			$pathsToRequire = $this->memoryCache->get($class);
-		}
-
-		if (class_exists($class, false)) {
-			return false;
 		}
 
 		if (!is_array($pathsToRequire)) {

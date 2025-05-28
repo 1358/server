@@ -23,7 +23,6 @@ use OC\Share\Share;
 use OC\Share20\ShareDisableChecker;
 use OC_App;
 use OC_Hook;
-use OC_Util;
 use OCA\Files_External\Config\ExternalMountPoint;
 use OCA\Files_Sharing\External\Mount;
 use OCA\Files_Sharing\ISharedMountPoint;
@@ -34,6 +33,7 @@ use OCP\EventDispatcher\IEventDispatcher;
 use OCP\Files\Config\ICachedMountInfo;
 use OCP\Files\Config\IHomeMountProvider;
 use OCP\Files\Config\IMountProvider;
+use OCP\Files\Config\IRootMountProvider;
 use OCP\Files\Config\IUserMountCache;
 use OCP\Files\Events\BeforeFileSystemSetupEvent;
 use OCP\Files\Events\InvalidateMountCacheEvent;
@@ -156,7 +156,7 @@ class SetupManager {
 			if ($mount instanceof HomeMountPoint) {
 				$user = $mount->getUser();
 				return new Quota(['storage' => $storage, 'quotaCallback' => function () use ($user) {
-					return OC_Util::getUserQuota($user);
+					return $user->getQuotaBytes();
 				}, 'root' => 'files', 'include_external_storage' => $quotaIncludeExternal]);
 			}
 
@@ -280,9 +280,13 @@ class SetupManager {
 		$mounts = array_filter($mounts, function (IMountPoint $mount) use ($userRoot) {
 			return str_starts_with($mount->getMountPoint(), $userRoot);
 		});
-		$allProviders = array_map(function (IMountProvider $provider) {
+		$allProviders = array_map(function (IMountProvider|IHomeMountProvider|IRootMountProvider $provider) {
 			return get_class($provider);
-		}, $this->mountProviderCollection->getProviders());
+		}, array_merge(
+			$this->mountProviderCollection->getProviders(),
+			$this->mountProviderCollection->getHomeProviders(),
+			$this->mountProviderCollection->getRootProviders(),
+		));
 		$newProviders = array_diff($allProviders, $previouslySetupProviders);
 		$mounts = array_filter($mounts, function (IMountPoint $mount) use ($previouslySetupProviders) {
 			return !in_array($mount->getMountProvider(), $previouslySetupProviders);

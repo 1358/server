@@ -6,13 +6,14 @@ declare(strict_types=1);
  * SPDX-FileCopyrightText: 2013-2016 ownCloud, Inc.
  * SPDX-License-Identifier: AGPL-3.0-only
  */
-use OC\Encryption\HookManager;
+
 use OC\Profiler\BuiltInProfiler;
 use OC\Share20\GroupDeletedListener;
 use OC\Share20\Hooks;
 use OC\Share20\UserDeletedListener;
 use OC\Share20\UserRemovedListener;
 use OCP\EventDispatcher\IEventDispatcher;
+use OCP\Files\Events\BeforeFileSystemSetupEvent;
 use OCP\Group\Events\GroupDeletedEvent;
 use OCP\Group\Events\UserRemovedEvent;
 use OCP\IConfig;
@@ -22,7 +23,6 @@ use OCP\IURLGenerator;
 use OCP\IUserSession;
 use OCP\Security\Bruteforce\IThrottler;
 use OCP\Server;
-use OCP\Share;
 use OCP\Template\ITemplateManager;
 use OCP\User\Events\UserChangedEvent;
 use OCP\User\Events\UserDeletedEvent;
@@ -188,8 +188,6 @@ class OC {
 	}
 
 	public static function checkConfig(): void {
-		$l = Server::get(\OCP\L10N\IFactory::class)->get('lib');
-
 		// Create config if it does not already exist
 		$configFilePath = self::$configDir . '/config.php';
 		if (!file_exists($configFilePath)) {
@@ -198,9 +196,11 @@ class OC {
 
 		// Check if config is writable
 		$configFileWritable = is_writable($configFilePath);
-		if (!$configFileWritable && !OC_Helper::isReadOnlyConfigEnabled()
+		$configReadOnly = Server::get(IConfig::class)->getSystemValueBool('config_is_read_only');
+		if (!$configFileWritable && !$configReadOnly
 			|| !$configFileWritable && \OCP\Util::needUpgrade()) {
 			$urlGenerator = Server::get(IURLGenerator::class);
+			$l = Server::get(\OCP\L10N\IFactory::class)->get('lib');
 
 			if (self::$CLI) {
 				echo $l->t('Cannot write into "config" directory!') . "\n";
@@ -551,10 +551,10 @@ class OC {
 			$processingScript = explode('/', $requestUri);
 			$processingScript = $processingScript[count($processingScript) - 1];
 
-			// index.php routes are handled in the middleware
-			// and cron.php does not need any authentication at all
-			if ($processingScript === 'index.php'
-				|| $processingScript === 'cron.php') {
+			if ($processingScript === 'index.php' // index.php routes are handled in the middleware
+				|| $processingScript === 'cron.php' // and cron.php does not need any authentication at all
+				|| $processingScript === 'public.php' // For public.php, auth for password protected shares is done in the PublicAuth plugin
+			) {
 				return;
 			}
 
@@ -601,9 +601,6 @@ class OC {
 		self::$loader = new \OC\Autoloader([
 			OC::$SERVERROOT . '/lib/private/legacy',
 		]);
-		if (defined('PHPUNIT_RUN')) {
-			self::$loader->addValidRoot(OC::$SERVERROOT . '/tests');
-		}
 		spl_autoload_register([self::$loader, 'load']);
 		$loaderEnd = microtime(true);
 
@@ -711,6 +708,7 @@ class OC {
 		self::performSameSiteCookieProtection($config);
 
 		if (!defined('OC_CONSOLE')) {
+			$eventLogger->start('check_server', 'Run a few configuration checks');
 			$errors = OC_Util::checkServer($systemConfig);
 			if (count($errors) > 0) {
 				if (!self::$CLI) {
@@ -745,6 +743,7 @@ class OC {
 			} elseif (self::$CLI && $config->getSystemValueBool('installed', false)) {
 				$config->deleteAppValue('core', 'cronErrors');
 			}
+			$eventLogger->end('check_server');
 		}
 
 		// User and Groups
@@ -752,6 +751,7 @@ class OC {
 			self::$server->getSession()->set('user_id', '');
 		}
 
+		$eventLogger->start('setup_backends', 'Setup group and user backends');
 		Server::get(\OCP\IUserManager::class)->registerBackend(new \OC\User\Database());
 		Server::get(\OCP\IGroupManager::class)->addBackend(new \OC\Group\Database());
 
@@ -770,6 +770,7 @@ class OC {
 			// Run upgrades in incognito mode
 			OC_User::setIncognitoMode(true);
 		}
+		$eventLogger->end('setup_backends');
 
 		self::registerCleanupHooks($systemConfig);
 		self::registerShareHooks($systemConfig);
@@ -907,15 +908,16 @@ class OC {
 	}
 
 	private static function registerEncryptionWrapperAndHooks(): void {
+		/** @var \OC\Encryption\Manager */
 		$manager = Server::get(\OCP\Encryption\IManager::class);
-		\OCP\Util::connectHook('OC_Filesystem', 'preSetup', $manager, 'setupStorage');
+		Server::get(IEventDispatcher::class)->addListener(
+			BeforeFileSystemSetupEvent::class,
+			$manager->setupStorage(...),
+		);
 
 		$enabled = $manager->isEnabled();
 		if ($enabled) {
-			\OCP\Util::connectHook(Share::class, 'post_shared', HookManager::class, 'postShared');
-			\OCP\Util::connectHook(Share::class, 'post_unshare', HookManager::class, 'postUnshared');
-			\OCP\Util::connectHook('OC_Filesystem', 'post_rename', HookManager::class, 'postRename');
-			\OCP\Util::connectHook('\OCA\Files_Trashbin\Trashbin', 'post_restore', HookManager::class, 'postRestore');
+			\OC\Encryption\EncryptionEventListener::register(Server::get(IEventDispatcher::class));
 		}
 	}
 

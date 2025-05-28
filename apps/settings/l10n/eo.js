@@ -196,7 +196,6 @@ OC.L10N.register(
     "It is always good to create regular backups of your data, in case of encryption make sure to backup the encryption keys along with your data." : "Ĉiam estas bone krei savkopiojn de viaj datumoj. Se tiuj ĉi lastaj estas ĉifritaj, certigu, ke vi savkopias ankaŭ la ĉifroŝlosilon kune kun la datumoj.",
     "This is the final warning: Do you really want to enable encryption?" : "Jen la fina averto: ĉu vi certe volas ŝalti ĉifradon?",
     "Submit" : "Sendi",
-    "Remove group" : "Forigi grupon",
     "Current password" : "Nuna pasvorto",
     "New password" : "Nova pasvorto",
     "Change password" : "Ŝanĝi la pasvorton",
@@ -300,11 +299,6 @@ OC.L10N.register(
     "Check out our blog" : "Vizitu nian blogon",
     "Subscribe to our newsletter" : "Aboni nian retan bultenon",
     "This community release of Nextcloud is unsupported and instant notifications are unavailable." : "Tiu elkomunuma eldono de Nextcloud ne estas subtenata, kaj tuj-sciigoj ne disponeblas.",
-    "Use a second factor besides your password to increase security for your account." : "Uzu duan fazon krom via pasvorto por plisekurigi vian konton.",
-    "The database is missing some indexes. Due to the fact that adding indexes on big tables could take some time they were not added automatically. By running \"occ db:add-missing-indices\" those missing indexes could be added manually while the instance keeps running. Once the indexes are added queries to those tables are usually much faster." : "Mankas kelkaj indeksoj en la datumbazo. Pro la ebla malrapideco aldoni indeksojn en grandaj tabeloj, ili ne estis aldonitaj aŭtomate. Vi povas aldoni ilin mane, rulante komandlinie „occ db:add-missing-indices“, dum la servilo estas funkcianta. Kiam la indeksoj ekzistos, la uzo de tiuj tabelojn estos kutime pli rapida.",
-    "New user" : "Nova uzanto",
-    "Username" : "Uzantonomo",
-    "User backend" : "Uzanto-loko",
-    "Follow us on Twitter" : "Sekvu nin per Twitter"
+    "Use a second factor besides your password to increase security for your account." : "Uzu duan fazon krom via pasvorto por plisekurigi vian konton."
 },
 "nplurals=2; plural=(n != 1);");
