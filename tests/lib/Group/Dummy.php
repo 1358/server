@@ -1,4 +1,5 @@
 <?php
+
 /**
  * SPDX-FileCopyrightText: 2019-2024 Nextcloud GmbH and Nextcloud contributors
  * SPDX-FileCopyrightText: 2016 ownCloud, Inc.
@@ -9,10 +10,12 @@ namespace Test\Group;
 
 /**
  * Class Dummy
- *
- * @group DB
  */
+#[\PHPUnit\Framework\Attributes\Group('DB')]
 class Dummy extends Backend {
+	public function __construct() {
+		parent::__construct(static::class);
+	}
 	protected function setUp(): void {
 		parent::setUp();
 		$this->backend = new \Test\Util\Group\Dummy();

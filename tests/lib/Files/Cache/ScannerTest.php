@@ -1,4 +1,5 @@
 <?php
+
 /**
  * SPDX-FileCopyrightText: 2016-2024 Nextcloud GmbH and Nextcloud contributors
  * SPDX-FileCopyrightText: 2016 ownCloud, Inc.
@@ -14,15 +15,17 @@ use OC\Files\Cache\Scanner;
 use OC\Files\Storage\Storage;
 use OC\Files\Storage\Temporary;
 use OCP\Files\Cache\IScanner;
+use OCP\IDBConnection;
+use OCP\Server;
 use Test\TestCase;
 
 /**
  * Class ScannerTest
  *
- * @group DB
  *
  * @package Test\Files\Cache
  */
+#[\PHPUnit\Framework\Attributes\Group('DB')]
 class ScannerTest extends TestCase {
 	private Storage $storage;
 	private Scanner $scanner;
@@ -67,7 +70,7 @@ class ScannerTest extends TestCase {
 		$data = "dummy file data\n";
 		$this->storage->file_put_contents('foo🙈.txt', $data);
 
-		if (OC::$server->getDatabaseConnection()->supports4ByteText()) {
+		if (Server::get(IDBConnection::class)->supports4ByteText()) {
 			$this->assertNotNull($this->scanner->scanFile('foo🙈.txt'));
 			$this->assertTrue($this->cache->inCache('foo🙈.txt'), true);
 
@@ -337,10 +340,10 @@ class ScannerTest extends TestCase {
 		$oldFolderId = $this->cache->getId('folder');
 
 		// delete the folder without removing the children
-		$query = OC::$server->getDatabaseConnection()->getQueryBuilder();
+		$query = Server::get(IDBConnection::class)->getQueryBuilder();
 		$query->delete('filecache')
 			->where($query->expr()->eq('fileid', $query->createNamedParameter($oldFolderId)));
-		$query->execute();
+		$query->executeStatement();
 
 		$cachedData = $this->cache->get('folder/bar.txt');
 		$this->assertEquals($oldFolderId, $cachedData['parent']);
@@ -363,10 +366,10 @@ class ScannerTest extends TestCase {
 		$oldFolderId = $this->cache->getId('folder');
 
 		// delete the folder without removing the children
-		$query = OC::$server->getDatabaseConnection()->getQueryBuilder();
+		$query = Server::get(IDBConnection::class)->getQueryBuilder();
 		$query->delete('filecache')
 			->where($query->expr()->eq('fileid', $query->createNamedParameter($oldFolderId)));
-		$query->execute();
+		$query->executeStatement();
 
 		$cachedData = $this->cache->get('folder/bar.txt');
 		$this->assertEquals($oldFolderId, $cachedData['parent']);
@@ -383,11 +386,11 @@ class ScannerTest extends TestCase {
 	}
 
 	/**
-	 * @dataProvider dataTestIsPartialFile
 	 *
 	 * @param string $path
 	 * @param bool $expected
 	 */
+	#[\PHPUnit\Framework\Attributes\DataProvider('dataTestIsPartialFile')]
 	public function testIsPartialFile($path, $expected): void {
 		$this->assertSame($expected,
 			$this->scanner->isPartialFile($path)

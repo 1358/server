@@ -93,8 +93,8 @@ class LoginController extends Controller {
 		$this->session->close();
 
 		if (
-			$this->request->getServerProtocol() === 'https' &&
-			!$this->request->isUserAgent([Request::USER_AGENT_CHROME, Request::USER_AGENT_ANDROID_MOBILE_CHROME])
+			$this->request->getServerProtocol() === 'https'
+			&& !$this->request->isUserAgent([Request::USER_AGENT_CHROME, Request::USER_AGENT_ANDROID_MOBILE_CHROME])
 		) {
 			$response->addHeader('Clear-Site-Data', '"cache", "storage"');
 		}
@@ -141,6 +141,11 @@ class LoginController extends Controller {
 		$this->initialState->provideInitialState(
 			'loginAutocomplete',
 			$this->config->getSystemValue('login_form_autocomplete', true) === true
+		);
+
+		$this->initialState->provideInitialState(
+			'loginCanRememberme',
+			$this->config->getSystemValueInt('remember_login_cookie_lifetime', 60 * 60 * 24 * 15) > 0
 		);
 
 		if (!empty($redirect_url)) {
@@ -287,6 +292,7 @@ class LoginController extends Controller {
 		ITrustedDomainHelper $trustedDomainHelper,
 		string $user = '',
 		string $password = '',
+		bool $rememberme = false,
 		?string $redirect_url = null,
 		string $timezone = '',
 		string $timezone_offset = '',
@@ -339,9 +345,10 @@ class LoginController extends Controller {
 			$this->request,
 			$user,
 			$password,
+			$rememberme,
 			$redirect_url,
 			$timezone,
-			$timezone_offset
+			$timezone_offset,
 		);
 		$result = $loginChain->process($data);
 		if (!$result->isSuccess()) {

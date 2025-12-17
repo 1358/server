@@ -1,4 +1,5 @@
 <?php
+
 /**
  * SPDX-FileCopyrightText: 2016-2024 Nextcloud GmbH and Nextcloud contributors
  * SPDX-FileCopyrightText: 2016 ownCloud, Inc.
@@ -26,13 +27,12 @@ use OCP\ICacheFactory;
 use OCP\IConfig;
 use OCP\IDBConnection;
 use OCP\IUserManager;
+use OCP\Server;
 use Psr\Log\LoggerInterface;
 use Test\TestCase;
 use Test\Util\User\Dummy;
 
-/**
- * @group DB
- */
+#[\PHPUnit\Framework\Attributes\Group('DB')]
 class UserMountCacheTest extends TestCase {
 	private IDBConnection $connection;
 	private IUserManager $userManager;
@@ -45,7 +45,7 @@ class UserMountCacheTest extends TestCase {
 
 		$this->fileIds = [];
 
-		$this->connection = \OC::$server->getDatabaseConnection();
+		$this->connection = Server::get(IDBConnection::class);
 
 		$config = $this->getMockBuilder(IConfig::class)
 			->disableOriginalConstructor()
@@ -79,14 +79,14 @@ class UserMountCacheTest extends TestCase {
 	protected function tearDown(): void {
 		$builder = $this->connection->getQueryBuilder();
 
-		$builder->delete('mounts')->execute();
+		$builder->delete('mounts')->executeStatement();
 
 		$builder = $this->connection->getQueryBuilder();
 
 		foreach ($this->fileIds as $fileId) {
 			$builder->delete('filecache')
 				->where($builder->expr()->eq('fileid', new Literal($fileId)))
-				->execute();
+				->executeStatement();
 		}
 	}
 
@@ -413,7 +413,7 @@ class UserMountCacheTest extends TestCase {
 					->from('filecache')
 					->where($query->expr()->eq('storage', $query->createNamedParameter($storageId)))
 					->andWhere($query->expr()->eq('path_hash', $query->createNamedParameter(md5($internalPath))));
-				$id = (int)$query->execute()->fetchColumn();
+				$id = (int)$query->executeQuery()->fetchOne();
 			} else {
 				throw $e;
 			}

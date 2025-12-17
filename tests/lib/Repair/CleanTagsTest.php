@@ -1,4 +1,5 @@
 <?php
+
 /**
  * SPDX-FileCopyrightText: 2016-2024 Nextcloud GmbH and Nextcloud contributors
  * SPDX-FileCopyrightText: 2016 ownCloud, Inc.
@@ -7,23 +8,25 @@
 
 namespace Test\Repair;
 
+use OC\Repair\CleanTags;
 use OCP\DB\QueryBuilder\IQueryBuilder;
 use OCP\IDBConnection;
 use OCP\IUserManager;
 use OCP\Migration\IOutput;
+use OCP\Server;
 use PHPUnit\Framework\MockObject\MockObject;
 
 /**
  * Tests for the cleaning the tags tables
  *
- * @group DB
  *
  * @see \OC\Repair\CleanTags
  */
+#[\PHPUnit\Framework\Attributes\Group('DB')]
 class CleanTagsTest extends \Test\TestCase {
 
 	private ?int $createdFile = null;
-	private \OC\Repair\CleanTags $repair;
+	private CleanTags $repair;
 	private IDBConnection $connection;
 
 	private IUserManager&MockObject $userManager;
@@ -40,8 +43,8 @@ class CleanTagsTest extends \Test\TestCase {
 			->disableOriginalConstructor()
 			->getMock();
 
-		$this->connection = \OCP\Server::get(IDBConnection::class);
-		$this->repair = new \OC\Repair\CleanTags($this->connection, $this->userManager);
+		$this->connection = Server::get(IDBConnection::class);
+		$this->repair = new CleanTags($this->connection, $this->userManager);
 		$this->cleanUpTables();
 	}
 

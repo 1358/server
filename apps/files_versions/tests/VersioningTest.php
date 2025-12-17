@@ -34,9 +34,8 @@ use OCP\Util;
 /**
  * Class Test_Files_versions
  * this class provide basic files versions test
- *
- * @group DB
  */
+#[\PHPUnit\Framework\Attributes\Group('DB')]
 class VersioningTest extends \Test\TestCase {
 	public const TEST_VERSIONS_USER = 'test-versions-user';
 	public const TEST_VERSIONS_USER2 = 'test-versions-user2';
@@ -138,10 +137,9 @@ class VersioningTest extends \Test\TestCase {
 	}
 
 	/**
-	 * @medium
 	 * test expire logic
-	 * @dataProvider versionsProvider
 	 */
+	#[\PHPUnit\Framework\Attributes\DataProvider('versionsProvider')]
 	public function testGetExpireList($versions, $sizeOfAllDeletedFiles): void {
 
 		// last interval end at 2592000

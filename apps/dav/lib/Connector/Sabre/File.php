@@ -18,6 +18,7 @@ use OCA\DAV\Connector\Sabre\Exception\FileLocked;
 use OCA\DAV\Connector\Sabre\Exception\Forbidden as DAVForbiddenException;
 use OCA\DAV\Connector\Sabre\Exception\UnsupportedMediaType;
 use OCP\App\IAppManager;
+use OCP\Constants;
 use OCP\Encryption\Exceptions\GenericEncryptionException;
 use OCP\Files;
 use OCP\Files\EntityTooLargeException;
@@ -204,6 +205,9 @@ class File extends Node implements IFile {
 				}
 			}
 
+			$lengthHeader = $this->request->getHeader('content-length');
+			$expected = $lengthHeader !== '' ? (int)$lengthHeader : null;
+
 			if ($partStorage->instanceOfStorage(IWriteStreamStorage::class)) {
 				$isEOF = false;
 				$wrappedData = CallbackWrapper::wrap($data, null, null, null, null, function ($stream) use (&$isEOF): void {
@@ -215,8 +219,10 @@ class File extends Node implements IFile {
 					$count = -1;
 					try {
 						/** @var IWriteStreamStorage $partStorage */
-						$count = $partStorage->writeStream($internalPartPath, $wrappedData);
-					} catch (GenericFileException) {
+						$count = $partStorage->writeStream($internalPartPath, $wrappedData, $expected);
+					} catch (GenericFileException $e) {
+						$logger = Server::get(LoggerInterface::class);
+						$logger->error('Error while writing stream to storage: ' . $e->getMessage(), ['exception' => $e, 'app' => 'webdav']);
 						$result = $isEOF;
 						if (is_resource($wrappedData)) {
 							$result = feof($wrappedData);
@@ -233,10 +239,7 @@ class File extends Node implements IFile {
 				[$count, $result] = Files::streamCopy($data, $target, true);
 				fclose($target);
 			}
-
-			$lengthHeader = $this->request->getHeader('content-length');
-			$expected = $lengthHeader !== '' ? (int)$lengthHeader : -1;
-			if ($result === false && $expected >= 0) {
+			if ($result === false && $expected !== null) {
 				throw new Exception(
 					$this->l10n->t(
 						'Error while copying file to target location (copied: %1$s, expected filesize: %2$s)',
@@ -251,7 +254,7 @@ class File extends Node implements IFile {
 			// if content length is sent by client:
 			// double check if the file was fully received
 			// compare expected and actual size
-			if ($expected >= 0
+			if ($expected !== null
 				&& $expected !== $count
 				&& $this->request->getMethod() === 'PUT'
 			) {
@@ -537,18 +540,24 @@ class File extends Node implements IFile {
 	}
 
 	/**
-	 * @return array|bool
+	 * @throws NotFoundException
+	 * @throws NotPermittedException
 	 */
-	public function getDirectDownload() {
+	public function getDirectDownload(): array|false {
 		if (Server::get(IAppManager::class)->isEnabledForUser('encryption')) {
-			return [];
+			return false;
 		}
-		[$storage, $internalPath] = $this->fileView->resolvePath($this->path);
-		if (is_null($storage)) {
-			return [];
+		$node = $this->getNode();
+		$storage = $node->getStorage();
+		if (!$storage) {
+			return false;
 		}
 
-		return $storage->getDirectDownload($internalPath);
+		if (!($node->getPermissions() & Constants::PERMISSION_READ)) {
+			return false;
+		}
+
+		return $storage->getDirectDownloadById((string)$node->getId());
 	}
 
 	/**

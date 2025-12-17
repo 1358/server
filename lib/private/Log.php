@@ -158,7 +158,7 @@ class Log implements ILogger, IDataLogger {
 			return; // no crash reporter, no listeners, we can stop for lower log level
 		}
 
-		array_walk($context, [$this->normalizer, 'format']);
+		$context = array_map($this->normalizer->format(...), $context);
 
 		$app = $context['app'] ?? 'no app in context';
 		$entry = $this->interpolateMessage($context, $message);
@@ -306,9 +306,9 @@ class Log implements ILogger, IDataLogger {
 	protected function checkLogSecret(string $conditionSecret): bool {
 		$request = \OCP\Server::get(IRequest::class);
 
-		if ($request->getMethod() === 'PUT' &&
-			!str_contains($request->getHeader('Content-Type'), 'application/x-www-form-urlencoded') &&
-			!str_contains($request->getHeader('Content-Type'), 'application/json')) {
+		if ($request->getMethod() === 'PUT'
+			&& !str_contains($request->getHeader('Content-Type'), 'application/x-www-form-urlencoded')
+			&& !str_contains($request->getHeader('Content-Type'), 'application/json')) {
 			return hash_equals($conditionSecret, '');
 		}
 

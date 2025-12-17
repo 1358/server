@@ -1,5 +1,6 @@
 <?php
 
+declare(strict_types=1);
 /**
  * SPDX-FileCopyrightText: 2016-2024 Nextcloud GmbH and Nextcloud contributors
  * SPDX-FileCopyrightText: 2016 ownCloud, Inc.
@@ -21,10 +22,10 @@ use Test\TestCase;
 /**
  * Class DeleteOrphanedFilesTest
  *
- * @group DB
  *
  * @package OCA\Files\Tests\Command
  */
+#[\PHPUnit\Framework\Attributes\Group('DB')]
 class DeleteOrphanedFilesTest extends TestCase {
 
 	private DeleteOrphanedFiles $command;
@@ -56,32 +57,28 @@ class DeleteOrphanedFilesTest extends TestCase {
 		parent::tearDown();
 	}
 
-	protected function getFile($fileId) {
+	protected function getFile(int $fileId): array {
 		$query = $this->connection->getQueryBuilder();
 		$query->select('*')
 			->from('filecache')
 			->where($query->expr()->eq('fileid', $query->createNamedParameter($fileId)));
-		return $query->executeQuery()->fetchAll();
+		return $query->executeQuery()->fetchAllAssociative();
 	}
 
-	protected function getMounts($storageId) {
+	protected function getMounts(int $storageId): array {
 		$query = $this->connection->getQueryBuilder();
 		$query->select('*')
 			->from('mounts')
 			->where($query->expr()->eq('storage_id', $query->createNamedParameter($storageId)));
-		return $query->executeQuery()->fetchAll();
+		return $query->executeQuery()->fetchAllAssociative();
 	}
 
 	/**
 	 * Test clearing orphaned files
 	 */
 	public function testClearFiles(): void {
-		$input = $this->getMockBuilder(InputInterface::class)
-			->disableOriginalConstructor()
-			->getMock();
-		$output = $this->getMockBuilder(OutputInterface::class)
-			->disableOriginalConstructor()
-			->getMock();
+		$input = $this->createMock(InputInterface::class);
+		$output = $this->createMock(OutputInterface::class);
 
 		$rootFolder = Server::get(IRootFolder::class);
 
@@ -112,14 +109,18 @@ class DeleteOrphanedFilesTest extends TestCase {
 		$this->assertSame(1, $deletedRows, 'Asserts that storage got deleted');
 
 		// parent folder, `files`, ´test` and `welcome.txt` => 4 elements
+		$calls = [
+			'3 orphaned file cache entries deleted',
+			'0 orphaned file cache extended entries deleted',
+			'1 orphaned mount entries deleted',
+		];
 		$output
 			->expects($this->exactly(3))
 			->method('writeln')
-			->withConsecutive(
-				['3 orphaned file cache entries deleted'],
-				['0 orphaned file cache extended entries deleted'],
-				['1 orphaned mount entries deleted'],
-			);
+			->willReturnCallback(function (string $message) use (&$calls): void {
+				$expected = array_shift($calls);
+				$this->assertSame($expected, $message);
+			});
 
 		$this->command->execute($input, $output);
 

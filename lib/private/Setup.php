@@ -15,6 +15,7 @@ use InvalidArgumentException;
 use OC\Authentication\Token\PublicKeyTokenProvider;
 use OC\Authentication\Token\TokenCleanupJob;
 use OC\Core\BackgroundJobs\GenerateMetadataJob;
+use OC\Core\BackgroundJobs\MovePreviewJob;
 use OC\Log\Rotate;
 use OC\Preview\BackgroundCleanupJob;
 use OC\TextProcessing\RemoveOldTasksBackgroundJob;
@@ -184,11 +185,11 @@ class Setup {
 			}
 		}
 
-		if (\OC_Util::runningOnMac()) {
+		// Check if running directly on macOS (note: Linux containers on macOS will not trigger this)
+		if (!getenv('CI') && PHP_OS_FAMILY === 'Darwin') {
 			$errors[] = [
 				'error' => $this->l10n->t(
-					'Mac OS X is not supported and %s will not work properly on this platform. ' .
-					'Use it at your own risk!',
+					'macOS is not supported and %s will not work properly on this platform.',
 					[$this->defaults->getProductName()]
 				),
 				'hint' => $this->l10n->t('For the best results, please consider using a GNU/Linux server instead.'),
@@ -198,8 +199,8 @@ class Setup {
 		if ($this->iniWrapper->getString('open_basedir') !== '' && PHP_INT_SIZE === 4) {
 			$errors[] = [
 				'error' => $this->l10n->t(
-					'It seems that this %s instance is running on a 32-bit PHP environment and the open_basedir has been configured in php.ini. ' .
-					'This will lead to problems with files over 4 GB and is highly discouraged.',
+					'It seems that this %s instance is running on a 32-bit PHP environment and the open_basedir has been configured in php.ini. '
+					. 'This will lead to problems with files over 4 GB and is highly discouraged.',
 					[$this->defaults->getProductName()]
 				),
 				'hint' => $this->l10n->t('Please remove the open_basedir setting within your php.ini or switch to 64-bit PHP.'),
@@ -304,11 +305,15 @@ class Setup {
 		$error = [];
 		$dbType = $options['dbtype'];
 
-		if (empty($options['adminlogin'])) {
-			$error[] = $l->t('Set an admin Login.');
-		}
-		if (empty($options['adminpass'])) {
-			$error[] = $l->t('Set an admin password.');
+		$disableAdminUser = (bool)($options['admindisable'] ?? false);
+
+		if (!$disableAdminUser) {
+			if (empty($options['adminlogin'])) {
+				$error[] = $l->t('Set an admin Login.');
+			}
+			if (empty($options['adminpass'])) {
+				$error[] = $l->t('Set an admin password.');
+			}
 		}
 		if (empty($options['directory'])) {
 			$options['directory'] = \OC::$SERVERROOT . '/data';
@@ -318,8 +323,6 @@ class Setup {
 			$dbType = 'sqlite';
 		}
 
-		$username = htmlspecialchars_decode($options['adminlogin']);
-		$password = htmlspecialchars_decode($options['adminpass']);
 		$dataDir = htmlspecialchars_decode($options['directory']);
 
 		$class = self::$dbSetupClasses[$dbType];
@@ -375,7 +378,7 @@ class Setup {
 		$this->outputDebug($output, 'Configuring database');
 		$dbSetup->initialize($options);
 		try {
-			$dbSetup->setupDatabase($username);
+			$dbSetup->setupDatabase();
 		} catch (\OC\DatabaseSetupException $e) {
 			$error[] = [
 				'error' => $e->getMessage(),
@@ -405,19 +408,22 @@ class Setup {
 			return $error;
 		}
 
-		$this->outputDebug($output, 'Create admin account');
-
-		// create the admin account and group
 		$user = null;
-		try {
-			$user = Server::get(IUserManager::class)->createUser($username, $password);
-			if (!$user) {
-				$error[] = "Account <$username> could not be created.";
+		if (!$disableAdminUser) {
+			$username = htmlspecialchars_decode($options['adminlogin']);
+			$password = htmlspecialchars_decode($options['adminpass']);
+			$this->outputDebug($output, 'Create admin account');
+
+			try {
+				$user = Server::get(IUserManager::class)->createUser($username, $password);
+				if (!$user) {
+					$error[] = "Account <$username> could not be created.";
+					return $error;
+				}
+			} catch (Exception $exception) {
+				$error[] = $exception->getMessage();
 				return $error;
 			}
-		} catch (Exception $exception) {
-			$error[] = $exception->getMessage();
-			return $error;
 		}
 
 		$config = Server::get(IConfig::class);
@@ -432,13 +438,14 @@ class Setup {
 		}
 
 		$group = Server::get(IGroupManager::class)->createGroup('admin');
-		if ($group instanceof IGroup) {
+		if ($user !== null && $group instanceof IGroup) {
 			$group->addUser($user);
 		}
 
 		// Install shipped apps and specified app bundles
 		$this->outputDebug($output, 'Install default apps');
-		Installer::installShippedApps(false, $output);
+		$installer = Server::get(Installer::class);
+		$installer->installShippedApps(false, $output);
 
 		// create empty file in data dir, so we can later find
 		// out that this is indeed a Nextcloud data directory
@@ -464,26 +471,28 @@ class Setup {
 		$bootstrapCoordinator = Server::get(\OC\AppFramework\Bootstrap\Coordinator::class);
 		$bootstrapCoordinator->runInitialRegistration();
 
-		// Create a session token for the newly created user
-		// The token provider requires a working db, so it's not injected on setup
-		/** @var \OC\User\Session $userSession */
-		$userSession = Server::get(IUserSession::class);
-		$provider = Server::get(PublicKeyTokenProvider::class);
-		$userSession->setTokenProvider($provider);
-		$userSession->login($username, $password);
-		$user = $userSession->getUser();
-		if (!$user) {
-			$error[] = 'No account found in session.';
-			return $error;
-		}
-		$userSession->createSessionToken($request, $user->getUID(), $username, $password);
+		if (!$disableAdminUser) {
+			// Create a session token for the newly created user
+			// The token provider requires a working db, so it's not injected on setup
+			/** @var \OC\User\Session $userSession */
+			$userSession = Server::get(IUserSession::class);
+			$provider = Server::get(PublicKeyTokenProvider::class);
+			$userSession->setTokenProvider($provider);
+			$userSession->login($username, $password);
+			$user = $userSession->getUser();
+			if (!$user) {
+				$error[] = 'No account found in session.';
+				return $error;
+			}
+			$userSession->createSessionToken($request, $user->getUID(), $username, $password);
 
-		$session = $userSession->getSession();
-		$session->set('last-password-confirm', Server::get(ITimeFactory::class)->getTime());
+			$session = $userSession->getSession();
+			$session->set('last-password-confirm', Server::get(ITimeFactory::class)->getTime());
 
-		// Set email for admin
-		if (!empty($options['adminemail'])) {
-			$user->setSystemEMailAddress($options['adminemail']);
+			// Set email for admin
+			if (!empty($options['adminemail'])) {
+				$user->setSystemEMailAddress($options['adminemail']);
+			}
 		}
 
 		return $error;
@@ -497,6 +506,7 @@ class Setup {
 		$jobList->add(RemoveOldTasksBackgroundJob::class);
 		$jobList->add(CleanupDeletedUsers::class);
 		$jobList->add(GenerateMetadataJob::class);
+		$jobList->add(MovePreviewJob::class);
 	}
 
 	/**

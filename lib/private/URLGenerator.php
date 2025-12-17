@@ -189,14 +189,14 @@ class URLGenerator implements IURLGenerator {
 		$basename = substr(basename($file), 0, -4);
 
 		try {
-			$appPath = $this->getAppManager()->getAppPath($appName);
-		} catch (AppPathNotFoundException $e) {
 			if ($appName === 'core' || $appName === '') {
 				$appName = 'core';
 				$appPath = false;
 			} else {
-				throw new RuntimeException('image not found: image: ' . $file . ' webroot: ' . \OC::$WEBROOT . ' serverroot: ' . \OC::$SERVERROOT);
+				$appPath = $this->getAppManager()->getAppPath($appName);
 			}
+		} catch (AppPathNotFoundException $e) {
+			throw new RuntimeException('image not found: image: ' . $file . ' webroot: ' . \OC::$WEBROOT . ' serverroot: ' . \OC::$SERVERROOT);
 		}
 
 		// Check if the app is in the app folder
@@ -215,9 +215,9 @@ class URLGenerator implements IURLGenerator {
 		} elseif (!file_exists(\OC::$SERVERROOT . "/themes/$theme/apps/$appName/img/$basename.svg")
 			&& file_exists(\OC::$SERVERROOT . "/themes/$theme/apps/$appName/img/$basename.png")) {
 			$path = \OC::$WEBROOT . "/themes/$theme/apps/$appName/img/$basename.png";
-		} elseif (!empty($appName) and file_exists(\OC::$SERVERROOT . "/themes/$theme/$appName/img/$file")) {
+		} elseif (!empty($appName) && file_exists(\OC::$SERVERROOT . "/themes/$theme/$appName/img/$file")) {
 			$path = \OC::$WEBROOT . "/themes/$theme/$appName/img/$file";
-		} elseif (!empty($appName) and (!file_exists(\OC::$SERVERROOT . "/themes/$theme/$appName/img/$basename.svg")
+		} elseif (!empty($appName) && (!file_exists(\OC::$SERVERROOT . "/themes/$theme/$appName/img/$basename.svg")
 			&& file_exists(\OC::$SERVERROOT . "/themes/$theme/$appName/img/$basename.png"))) {
 			$path = \OC::$WEBROOT . "/themes/$theme/$appName/img/$basename.png";
 		} elseif (file_exists(\OC::$SERVERROOT . "/themes/$theme/core/img/$file")) {
@@ -232,9 +232,9 @@ class URLGenerator implements IURLGenerator {
 		} elseif ($appPath && !file_exists($appPath . "/img/$basename.svg")
 			&& file_exists($appPath . "/img/$basename.png")) {
 			$path = $this->getAppManager()->getAppWebPath($appName) . "/img/$basename.png";
-		} elseif (!empty($appName) and file_exists(\OC::$SERVERROOT . "/$appName/img/$file")) {
+		} elseif (!empty($appName) && file_exists(\OC::$SERVERROOT . "/$appName/img/$file")) {
 			$path = \OC::$WEBROOT . "/$appName/img/$file";
-		} elseif (!empty($appName) and (!file_exists(\OC::$SERVERROOT . "/$appName/img/$basename.svg")
+		} elseif (!empty($appName) && (!file_exists(\OC::$SERVERROOT . "/$appName/img/$basename.svg")
 				&& file_exists(\OC::$SERVERROOT . "/$appName/img/$basename.png"))) {
 			$path = \OC::$WEBROOT . "/$appName/img/$basename.png";
 		} elseif (file_exists(\OC::$SERVERROOT . "/core/img/$file")) {

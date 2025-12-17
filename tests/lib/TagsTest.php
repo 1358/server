@@ -1,4 +1,5 @@
 <?php
+
 /**
  * SPDX-FileCopyrightText: 2016-2024 Nextcloud GmbH and Nextcloud contributors
  * SPDX-FileCopyrightText: 2016 ownCloud, Inc.
@@ -7,8 +8,14 @@
 
 namespace Test;
 
+use OC\Tagging\TagMapper;
+use OC\TagManager;
 use OCP\EventDispatcher\IEventDispatcher;
+use OCP\Files\Folder;
+use OCP\Files\IRootFolder;
+use OCP\Files\Node;
 use OCP\IDBConnection;
+use OCP\ITagManager;
 use OCP\IUser;
 use OCP\IUserManager;
 use OCP\IUserSession;
@@ -17,20 +24,20 @@ use Psr\Log\LoggerInterface;
 
 /**
  * Class TagsTest
- *
- * @group DB
  */
+#[\PHPUnit\Framework\Attributes\Group('DB')]
 class TagsTest extends \Test\TestCase {
 	protected $objectType;
-	/** @var \OCP\IUser */
+	/** @var IUser */
 	protected $user;
-	/** @var \OCP\IUserSession */
+	/** @var IUserSession */
 	protected $userSession;
 	protected $backupGlobals = false;
 	/** @var \OC\Tagging\TagMapper */
 	protected $tagMapper;
-	/** @var \OCP\ITagManager */
+	/** @var ITagManager */
 	protected $tagMgr;
+	protected IRootFolder $rootFolder;
 
 	protected function setUp(): void {
 		parent::setUp();
@@ -48,14 +55,26 @@ class TagsTest extends \Test\TestCase {
 			->expects($this->any())
 			->method('getUser')
 			->willReturn($this->user);
+		$userFolder = $this->createMock(Folder::class);
+		$node = $this->createMock(Node::class);
+		$this->rootFolder = $this->createMock(IRootFolder::class);
+		$this->rootFolder
+			->method('getUserFolder')
+			->willReturnCallback(fn () => $userFolder);
+		$userFolder
+			->method('getFirstNodeById')
+			->willReturnCallback(fn () => $node);
+		$node
+			->method('getPath')
+			->willReturnCallback(fn () => 'file.txt');
 
 		$this->objectType = $this->getUniqueID('type_');
-		$this->tagMapper = new \OC\Tagging\TagMapper(\OC::$server->get(IDBConnection::class));
-		$this->tagMgr = new \OC\TagManager($this->tagMapper, $this->userSession, \OC::$server->get(IDBConnection::class), \OC::$server->get(LoggerInterface::class), \OC::$server->get(IEventDispatcher::class));
+		$this->tagMapper = new TagMapper(Server::get(IDBConnection::class));
+		$this->tagMgr = new TagManager($this->tagMapper, $this->userSession, Server::get(IDBConnection::class), Server::get(LoggerInterface::class), Server::get(IEventDispatcher::class), $this->rootFolder);
 	}
 
 	protected function tearDown(): void {
-		$conn = \OC::$server->getDatabaseConnection();
+		$conn = Server::get(IDBConnection::class);
 		$conn->executeQuery('DELETE FROM `*PREFIX*vcategory_to_object`');
 		$conn->executeQuery('DELETE FROM `*PREFIX*vcategory`');
 
@@ -68,7 +87,7 @@ class TagsTest extends \Test\TestCase {
 			->expects($this->any())
 			->method('getUser')
 			->willReturn(null);
-		$this->tagMgr = new \OC\TagManager($this->tagMapper, $this->userSession, \OC::$server->getDatabaseConnection(), \OC::$server->get(LoggerInterface::class), \OC::$server->get(IEventDispatcher::class));
+		$this->tagMgr = new TagManager($this->tagMapper, $this->userSession, Server::get(IDBConnection::class), Server::get(LoggerInterface::class), Server::get(IEventDispatcher::class), $this->rootFolder);
 		$this->assertNull($this->tagMgr->load($this->objectType));
 	}
 
@@ -194,11 +213,11 @@ class TagsTest extends \Test\TestCase {
 		$tagId = $tagData[0]['id'];
 		$tagType = $tagData[0]['type'];
 
-		$conn = \OC::$server->getDatabaseConnection();
+		$conn = Server::get(IDBConnection::class);
 		$statement = $conn->prepare(
-			'INSERT INTO `*PREFIX*vcategory_to_object` ' .
-			'(`objid`, `categoryid`, `type`) VALUES ' .
-			'(?, ?, ?)'
+			'INSERT INTO `*PREFIX*vcategory_to_object` '
+			. '(`objid`, `categoryid`, `type`) VALUES '
+			. '(?, ?, ?)'
 		);
 
 		// insert lots of entries
@@ -249,9 +268,7 @@ class TagsTest extends \Test\TestCase {
 		$this->assertEquals(9, count($tagger->getIdsForTag('Family')));
 	}
 
-	/**
-	 * @depends testTagAs
-	 */
+	#[\PHPUnit\Framework\Attributes\Depends('testTagAs')]
 	public function testUnTag(): void {
 		$objIds = [1, 2, 3, 4, 5, 6, 7, 8, 9];
 

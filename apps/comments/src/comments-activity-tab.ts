@@ -2,12 +2,12 @@
  * SPDX-FileCopyrightText: 2023 Nextcloud GmbH and Nextcloud contributors
  * SPDX-License-Identifier: AGPL-3.0-or-later
  */
+
 import moment from '@nextcloud/moment'
+import { createPinia, PiniaVuePlugin } from 'pinia'
 import Vue, { type ComponentPublicInstance } from 'vue'
 import logger from './logger.js'
 import { getComments } from './services/GetComments.js'
-
-import { PiniaVuePlugin, createPinia } from 'pinia'
 
 Vue.use(PiniaVuePlugin)
 
@@ -19,7 +19,7 @@ let ActivityTabPluginInstance
  */
 export function registerCommentsPlugins() {
 	window.OCA.Activity.registerSidebarAction({
-		mount: async (el, { context, fileInfo, reload }) => {
+		mount: async (el, { fileInfo, reload }) => {
 			const pinia = createPinia()
 
 			if (!ActivityTabPluginView) {
@@ -29,7 +29,6 @@ export function registerCommentsPlugins() {
 			}
 			ActivityTabPluginInstance = new ActivityTabPluginView({
 				el,
-				parent: context,
 				pinia,
 				propsData: {
 					reloadCallback: reload,
@@ -58,10 +57,9 @@ export function registerCommentsPlugins() {
 
 			timestamp: moment(comment.props?.creationDateTime).toDate().getTime(),
 
-			mount(element: HTMLElement, { context, reload }) {
+			mount(element: HTMLElement, { reload }) {
 				this._CommentsViewInstance = new CommentsViewObject({
 					el: element,
-					parent: context,
 					propsData: {
 						comment,
 						resourceId: fileInfo.id,

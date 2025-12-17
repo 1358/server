@@ -1,4 +1,5 @@
 <?php
+
 /**
  * SPDX-FileCopyrightText: 2017-2024 Nextcloud GmbH and Nextcloud contributors
  * SPDX-FileCopyrightText: 2016 ownCloud GmbH.
@@ -7,37 +8,26 @@
 namespace OCA\Files_Sharing\Tests\Command;
 
 use OCA\Files_Sharing\Command\CleanupRemoteStorages;
+use OCA\Files_Sharing\External\ExternalShare;
+use OCA\Files_Sharing\External\ExternalShareMapper;
 use OCP\Federation\ICloudId;
 use OCP\Federation\ICloudIdManager;
 use OCP\IDBConnection;
 use OCP\Server;
+use OCP\Snowflake\IGenerator;
+use PHPUnit\Framework\Attributes\Group;
+use PHPUnit\Framework\MockObject\MockObject;
 use Symfony\Component\Console\Input\InputInterface;
 use Symfony\Component\Console\Output\OutputInterface;
 use Test\TestCase;
 
-/**
- * Class CleanupRemoteStoragesTest
- *
- * @group DB
- *
- * @package OCA\Files_Sharing\Tests\Command
- */
+#[Group('DB')]
 class CleanupRemoteStoragesTest extends TestCase {
 
-	/**
-	 * @var CleanupRemoteStorages
-	 */
-	private $command;
-
-	/**
-	 * @var IDBConnection
-	 */
-	private $connection;
-
-	/**
-	 * @var ICloudIdManager|\PHPUnit\Framework\MockObject\MockObject
-	 */
-	private $cloudIdManager;
+	protected IDBConnection $connection;
+	protected ExternalShareMapper $mapper;
+	protected CleanupRemoteStorages $command;
+	private ICloudIdManager&MockObject $cloudIdManager;
 
 	private $storages = [
 		['id' => 'shared::7b4a322b22f9d0047c38d77d471ce3cf', 'share_token' => 'f2c69dad1dc0649f26976fd210fc62e1', 'remote' => 'https://hostname.tld/owncloud1', 'user' => 'user1'],
@@ -53,20 +43,11 @@ class CleanupRemoteStoragesTest extends TestCase {
 		parent::setUp();
 
 		$this->connection = Server::get(IDBConnection::class);
+		$this->mapper = Server::get(ExternalShareMapper::class);
 
 		$storageQuery = Server::get(IDBConnection::class)->getQueryBuilder();
 		$storageQuery->insert('storages')
 			->setValue('id', $storageQuery->createParameter('id'));
-
-		$shareExternalQuery = Server::get(IDBConnection::class)->getQueryBuilder();
-		$shareExternalQuery->insert('share_external')
-			->setValue('share_token', $shareExternalQuery->createParameter('share_token'))
-			->setValue('remote', $shareExternalQuery->createParameter('remote'))
-			->setValue('name', $shareExternalQuery->createParameter('name'))
-			->setValue('owner', $shareExternalQuery->createParameter('owner'))
-			->setValue('user', $shareExternalQuery->createParameter('user'))
-			->setValue('mountpoint', $shareExternalQuery->createParameter('mountpoint'))
-			->setValue('mountpoint_hash', $shareExternalQuery->createParameter('mountpoint_hash'));
 
 		$filesQuery = Server::get(IDBConnection::class)->getQueryBuilder();
 		$filesQuery->insert('filecache')
@@ -77,20 +58,20 @@ class CleanupRemoteStoragesTest extends TestCase {
 		foreach ($this->storages as &$storage) {
 			if (isset($storage['id'])) {
 				$storageQuery->setParameter('id', $storage['id']);
-				$storageQuery->execute();
+				$storageQuery->executeStatement();
 				$storage['numeric_id'] = $storageQuery->getLastInsertId();
 			}
 
 			if (isset($storage['share_token'])) {
-				$shareExternalQuery
-					->setParameter('share_token', $storage['share_token'])
-					->setParameter('remote', $storage['remote'])
-					->setParameter('name', 'irrelevant')
-					->setParameter('owner', 'irrelevant')
-					->setParameter('user', $storage['user'])
-					->setParameter('mountpoint', 'irrelevant')
-					->setParameter('mountpoint_hash', 'irrelevant');
-				$shareExternalQuery->executeStatement();
+				$externalShare = new ExternalShare();
+				$externalShare->setId(Server::get(IGenerator::class)->nextId());
+				$externalShare->setShareToken($storage['share_token']);
+				$externalShare->setRemote($storage['remote']);
+				$externalShare->setName('irrelevant');
+				$externalShare->setOwner('irrelevant');
+				$externalShare->setUser($storage['user']);
+				$externalShare->setMountpoint('irrelevant');
+				$this->mapper->insert($externalShare);
 			}
 
 			if (isset($storage['files_count'])) {
@@ -121,13 +102,13 @@ class CleanupRemoteStoragesTest extends TestCase {
 		foreach ($this->storages as $storage) {
 			if (isset($storage['id'])) {
 				$storageQuery->setParameter('id', $storage['id']);
-				$storageQuery->execute();
+				$storageQuery->executeStatement();
 			}
 
 			if (isset($storage['share_token'])) {
 				$shareExternalQuery->setParameter('share_token', $storage['share_token']);
 				$shareExternalQuery->setParameter('remote', $storage['remote']);
-				$shareExternalQuery->execute();
+				$shareExternalQuery->executeStatement();
 			}
 		}
 
@@ -174,19 +155,18 @@ class CleanupRemoteStoragesTest extends TestCase {
 			->getMock();
 
 		// parent folder, `files`, ´test` and `welcome.txt` => 4 elements
-
+		$outputCalls = [];
 		$output
 			->expects($this->any())
 			->method('writeln')
-			->withConsecutive(
-				['5 remote storage(s) need(s) to be checked'],
-				['5 remote share(s) exist'],
-			);
+			->willReturnCallback(function (string $text) use (&$outputCalls): void {
+				$outputCalls[] = $text;
+			});
 
 		$this->cloudIdManager
 			->expects($this->any())
 			->method('getCloudId')
-			->will($this->returnCallback(function (string $user, string $remote) {
+			->willReturnCallback(function (string $user, string $remote) {
 				$cloudIdMock = $this->createMock(ICloudId::class);
 
 				// The remotes are already sanitized in the original data, so
@@ -197,7 +177,7 @@ class CleanupRemoteStoragesTest extends TestCase {
 					->willReturn($remote);
 
 				return $cloudIdMock;
-			}));
+			});
 
 		$this->command->execute($input, $output);
 
@@ -206,5 +186,10 @@ class CleanupRemoteStoragesTest extends TestCase {
 		$this->assertFalse($this->doesStorageExist($this->storages[3]['numeric_id']));
 		$this->assertTrue($this->doesStorageExist($this->storages[4]['numeric_id']));
 		$this->assertFalse($this->doesStorageExist($this->storages[5]['numeric_id']));
+
+		$this->assertEquals([
+			'5 remote storage(s) need(s) to be checked',
+			'5 remote share(s) exist',
+		], array_slice($outputCalls, 0, 2));
 	}
 }

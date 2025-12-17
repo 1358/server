@@ -35,9 +35,7 @@ use Sabre\HTTP\ResponseInterface;
 use Sabre\Xml\Service;
 use Test\TestCase;
 
-/**
- * @group DB
- */
+#[\PHPUnit\Framework\Attributes\Group('DB')]
 class FilesPluginTest extends TestCase {
 
 	private Tree&MockObject $tree;
@@ -294,7 +292,7 @@ class FilesPluginTest extends TestCase {
 
 		$node->expects($this->once())
 			->method('getDirectDownload')
-			->will($this->throwException(new StorageNotAvailableException()));
+			->willThrowException(new StorageNotAvailableException());
 
 		$this->plugin->handleGetProperties(
 			$propFind,
@@ -652,9 +650,7 @@ class FilesPluginTest extends TestCase {
 		];
 	}
 
-	/**
-	 * @dataProvider downloadHeadersProvider
-	 */
+	#[\PHPUnit\Framework\Attributes\DataProvider('downloadHeadersProvider')]
 	public function testDownloadHeaders(bool $isClumsyAgent, string $contentDispositionHeader): void {
 		$request = $this->createMock(RequestInterface::class);
 		$response = $this->createMock(ResponseInterface::class);
@@ -688,7 +684,7 @@ class FilesPluginTest extends TestCase {
 		$response
 			->expects($this->exactly(count($calls)))
 			->method('addHeader')
-			->willReturnCallback(function () use (&$calls) {
+			->willReturnCallback(function () use (&$calls): void {
 				$expected = array_shift($calls);
 				$this->assertSame($expected, func_get_args());
 			});

@@ -1,4 +1,5 @@
 <?php
+
 /**
  * SPDX-FileCopyrightText: 2016-2024 Nextcloud GmbH and Nextcloud contributors
  * SPDX-FileCopyrightText: 2016 ownCloud, Inc.
@@ -9,19 +10,18 @@ namespace Test\Files\ObjectStore;
 
 use OC\Files\ObjectStore\StorageObjectStore;
 use OC\Files\Storage\Temporary;
+use OCP\Files\ObjectStore\IObjectStore;
 use Test\Files\Storage\StoragesTestCase;
 
-/**
- * @group DB
- */
+#[\PHPUnit\Framework\Attributes\Group('DB')]
 class ObjectStoreStoragesDifferentBucketTest extends StoragesTestCase {
 	/**
-	 * @var \OCP\Files\ObjectStore\IObjectStore
+	 * @var IObjectStore
 	 */
 	private $objectStore1;
 
 	/**
-	 * @var \OCP\Files\ObjectStore\IObjectStore
+	 * @var IObjectStore
 	 */
 	private $objectStore2;
 

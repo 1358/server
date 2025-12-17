@@ -3,10 +3,9 @@
  * SPDX-License-Identifier: AGPL-3.0-or-later
  */
 import { copyFile, getRowForFile, moveFile, navigateToFolder } from '../../files/FilesUtils.ts'
-import { getShareUrl, setupPublicShare } from './setup-public-share.ts'
+import { getShareUrl, setupPublicShare } from './PublicShareUtils.ts'
 
 describe('files_sharing: Public share - copy and move files', { testIsolation: true }, () => {
-
 	beforeEach(() => {
 		setupPublicShare()
 			.then(() => cy.logout())

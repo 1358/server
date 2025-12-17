@@ -1,4 +1,5 @@
 <?php
+
 /**
  * SPDX-FileCopyrightText: 2017 Nextcloud GmbH and Nextcloud contributors
  * SPDX-License-Identifier: AGPL-3.0-or-later
@@ -12,6 +13,7 @@ use OCP\AppFramework\Services\IInitialState;
 use OCP\IConfig;
 use OCP\IURLGenerator;
 use OCP\Settings\IDelegatedSettings;
+use OCP\Util;
 
 class CalDAVSettings implements IDelegatedSettings {
 
@@ -43,6 +45,9 @@ class CalDAVSettings implements IDelegatedSettings {
 			$value = $this->config->getAppValue(Application::APP_ID, $key, $default);
 			$this->initialState->provideInitialState($key, $value === 'yes');
 		}
+
+		Util::addScript(Application::APP_ID, 'settings-admin-caldav');
+		Util::addStyle(Application::APP_ID, 'settings-admin-caldav');
 		return new TemplateResponse(Application::APP_ID, 'settings-admin-caldav');
 	}
 

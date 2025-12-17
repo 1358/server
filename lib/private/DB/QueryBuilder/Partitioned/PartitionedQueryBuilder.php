@@ -126,8 +126,8 @@ class PartitionedQueryBuilder extends ShardedQueryBuilder {
 				$selectPartition = null;
 			}
 			if (
-				($select === $checkColumn || $select === '*') &&
-				$selectPartition === $partition
+				($select === $checkColumn || $select === '*')
+				&& $selectPartition === $partition
 			) {
 				return;
 			}
@@ -151,8 +151,8 @@ class PartitionedQueryBuilder extends ShardedQueryBuilder {
 		foreach ($this->selects as $select) {
 			foreach ($this->partitions as $partition) {
 				if (is_string($select['select']) && (
-					$select['select'] === '*' ||
-					$partition->isColumnInPartition($select['select']))
+					$select['select'] === '*'
+					|| $partition->isColumnInPartition($select['select']))
 				) {
 					if (isset($this->splitQueries[$partition->name])) {
 						if ($select['alias']) {
@@ -205,13 +205,20 @@ class PartitionedQueryBuilder extends ShardedQueryBuilder {
 	}
 
 	public function leftJoin($fromAlias, $join, $alias, $condition = null): self {
-		return $this->join($fromAlias, (string)$join, $alias, $condition, PartitionQuery::JOIN_MODE_LEFT);
+		return $this->join($fromAlias, $join, $alias, $condition, PartitionQuery::JOIN_MODE_LEFT);
 	}
 
 	public function join($fromAlias, $join, $alias, $condition = null, $joinMode = PartitionQuery::JOIN_MODE_INNER): self {
-		$partition = $this->getPartition($join);
-		$fromPartition = $this->getPartition($fromAlias);
+		if ($join instanceof IQueryFunction) {
+			$partition = null;
+			$fromPartition = null;
+		} else {
+			$partition = $this->getPartition($join);
+			$fromPartition = $this->getPartition($fromAlias);
+		}
+
 		if ($partition && $partition !== $this->mainPartition) {
+			/** @var string $join */
 			// join from the main db to a partition
 
 			$joinCondition = JoinCondition::parse($condition, $join, $alias, $fromAlias);
@@ -238,6 +245,7 @@ class PartitionedQueryBuilder extends ShardedQueryBuilder {
 			parent::andWhere(...$joinCondition->fromConditions);
 			return $this;
 		} elseif ($fromPartition && $fromPartition !== $partition) {
+			/** @var string $join */
 			// join from partition, to the main db
 
 			$joinCondition = JoinCondition::parse($condition, $join, $alias, $fromAlias);
@@ -443,5 +451,20 @@ class PartitionedQueryBuilder extends ShardedQueryBuilder {
 
 	public function getPartitionCount(): int {
 		return count($this->splitQueries) + 1;
+	}
+
+	public function hintShardKey(string $column, mixed $value, bool $overwrite = false): self {
+		if (str_contains($column, '.')) {
+			[$alias, $column] = explode('.', $column);
+			$partition = $this->getPartition($alias);
+			if ($partition) {
+				$this->splitQueries[$partition->name]->query->hintShardKey($column, $value, $overwrite);
+			} else {
+				parent::hintShardKey($column, $value, $overwrite);
+			}
+		} else {
+			parent::hintShardKey($column, $value, $overwrite);
+		}
+		return $this;
 	}
 }

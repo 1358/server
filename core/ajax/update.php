@@ -5,9 +5,8 @@
  * SPDX-FileCopyrightText: 2016 ownCloud, Inc.
  * SPDX-License-Identifier: AGPL-3.0-only
  */
+use OC\Core\Listener\FeedBackHandler;
 use OC\DB\MigratorExecuteSqlEvent;
-use OC\Installer;
-use OC\IntegrityCheck\Checker;
 use OC\Repair\Events\RepairAdvanceEvent;
 use OC\Repair\Events\RepairErrorEvent;
 use OC\Repair\Events\RepairFinishEvent;
@@ -19,13 +18,11 @@ use OC\SystemConfig;
 use OC\Updater;
 use OCP\EventDispatcher\Event;
 use OCP\EventDispatcher\IEventDispatcher;
-use OCP\IAppConfig;
 use OCP\IConfig;
 use OCP\IEventSourceFactory;
 use OCP\IL10N;
 use OCP\L10N\IFactory;
 use OCP\Server;
-use OCP\ServerVersion;
 use OCP\Util;
 use Psr\Log\LoggerInterface;
 
@@ -57,14 +54,7 @@ if (Util::needUpgrade()) {
 	\OC_User::setIncognitoMode(true);
 
 	$config = Server::get(IConfig::class);
-	$updater = new Updater(
-		Server::get(ServerVersion::class),
-		$config,
-		Server::get(IAppConfig::class),
-		Server::get(Checker::class),
-		Server::get(LoggerInterface::class),
-		Server::get(Installer::class)
-	);
+	$updater = Server::get(Updater::class);
 	$incompatibleApps = [];
 	$incompatibleOverwrites = $config->getSystemValue('app_install_overwrite', []);
 
@@ -76,7 +66,7 @@ if (Util::needUpgrade()) {
 			$eventSource->send('success', $l->t('[%d / %d]: %s', [$event->getCurrentStep(), $event->getMaxStep(), $event->getSql()]));
 		}
 	);
-	$feedBack = new \OC\Core\Listener\FeedBackHandler($eventSource, $l);
+	$feedBack = new FeedBackHandler($eventSource, $l);
 	$dispatcher->addListener(RepairStartEvent::class, [$feedBack, 'handleRepairFeedback']);
 	$dispatcher->addListener(RepairAdvanceEvent::class, [$feedBack, 'handleRepairFeedback']);
 	$dispatcher->addListener(RepairFinishEvent::class, [$feedBack, 'handleRepairFeedback']);

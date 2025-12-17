@@ -1,4 +1,5 @@
 <?php
+
 /**
  * SPDX-FileCopyrightText: 2016-2024 Nextcloud GmbH and Nextcloud contributors
  * SPDX-FileCopyrightText: 2016 ownCloud, Inc.
@@ -15,11 +16,10 @@ use OCP\Http\Client\IResponse;
 
 /**
  * Tests for the external Storage class for remote shares.
- *
- * @group DB
  */
+#[\PHPUnit\Framework\Attributes\Group('DB')]
 class ExternalStorageTest extends \Test\TestCase {
-	public function optionsProvider() {
+	public static function optionsProvider() {
 		return [
 			[
 				'http://remoteserver:8080/owncloud',
@@ -87,9 +87,7 @@ class ExternalStorageTest extends \Test\TestCase {
 		);
 	}
 
-	/**
-	 * @dataProvider optionsProvider
-	 */
+	#[\PHPUnit\Framework\Attributes\DataProvider('optionsProvider')]
 	public function testStorageMountOptions($inputUri, $baseUri): void {
 		$storage = $this->getTestStorage($inputUri);
 		$this->assertEquals($baseUri, $storage->getBaseUri());

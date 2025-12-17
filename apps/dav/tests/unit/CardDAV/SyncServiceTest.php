@@ -66,13 +66,13 @@ class SyncServiceTest extends TestCase {
 			->willReturn($this->client);
 
 		$this->service = new SyncService(
+			$clientService,
+			$this->config,
 			$this->backend,
 			$this->userManager,
 			$this->dbConnection,
 			$this->logger,
 			$this->converter,
-			$clientService,
-			$this->config
 		);
 	}
 
@@ -108,7 +108,7 @@ class SyncServiceTest extends TestCase {
 			'1',
 			'principals/system/system',
 			[]
-		);
+		)[0];
 
 		$this->assertEquals('http://sabre.io/ns/sync/1', $token);
 	}
@@ -179,7 +179,7 @@ END:VCARD';
 			'1',
 			'principals/system/system',
 			[]
-		);
+		)[0];
 
 		$this->assertEquals('http://sabre.io/ns/sync/2', $token);
 	}
@@ -250,7 +250,7 @@ END:VCARD';
 			'1',
 			'principals/system/system',
 			[]
-		);
+		)[0];
 
 		$this->assertEquals('http://sabre.io/ns/sync/3', $token);
 	}
@@ -291,7 +291,7 @@ END:VCARD';
 			'1',
 			'principals/system/system',
 			[]
-		);
+		)[0];
 
 		$this->assertEquals('http://sabre.io/ns/sync/4', $token);
 	}
@@ -314,7 +314,7 @@ END:VCARD';
 		$clientService = $this->createMock(IClientService::class);
 		$config = $this->createMock(IConfig::class);
 
-		$ss = new SyncService($backend, $userManager, $dbConnection, $logger, $converter, $clientService, $config);
+		$ss = new SyncService($clientService, $config, $backend, $userManager, $dbConnection, $logger, $converter);
 		$ss->ensureSystemAddressBookExists('principals/users/adam', 'contacts', []);
 	}
 
@@ -325,9 +325,7 @@ END:VCARD';
 		];
 	}
 
-	/**
-	 * @dataProvider dataActivatedUsers
-	 */
+	#[\PHPUnit\Framework\Attributes\DataProvider('dataActivatedUsers')]
 	public function testUpdateAndDeleteUser(bool $activated, int $createCalls, int $updateCalls, int $deleteCalls): void {
 		/** @var CardDavBackend | MockObject $backend */
 		$backend = $this->getMockBuilder(CardDavBackend::class)->disableOriginalConstructor()->getMock();
@@ -361,7 +359,7 @@ END:VCARD';
 		$clientService = $this->createMock(IClientService::class);
 		$config = $this->createMock(IConfig::class);
 
-		$ss = new SyncService($backend, $userManager, $dbConnection, $logger, $converter, $clientService, $config);
+		$ss = new SyncService($clientService, $config, $backend, $userManager, $dbConnection, $logger, $converter);
 		$ss->updateUser($user);
 
 		$ss->updateUser($user);
@@ -427,9 +425,7 @@ END:VCARD';
 		);
 	}
 
-	/**
-	 * @dataProvider providerUseAbsoluteUriReport
-	 */
+	#[\PHPUnit\Framework\Attributes\DataProvider('providerUseAbsoluteUriReport')]
 	public function testUseAbsoluteUriReport(string $host, string $expected): void {
 		$body = '<?xml version="1.0"?>
 <d:multistatus xmlns:d="DAV:" xmlns:s="http://sabredav.org/ns" xmlns:card="urn:ietf:params:xml:ns:carddav" xmlns:oc="http://owncloud.org/ns">

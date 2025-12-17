@@ -1,42 +1,36 @@
 <?php
+
 /**
  * SPDX-FileCopyrightText: 2018 Nextcloud GmbH and Nextcloud contributors
  * SPDX-License-Identifier: AGPL-3.0-or-later
  */
 namespace OC\Core\Controller;
 
-use OC\CapabilitiesManager;
-use OC\Security\IdentityProof\Manager;
 use OC\Updater\ChangesCheck;
 use OCP\AppFramework\Db\DoesNotExistException;
 use OCP\AppFramework\Http;
 use OCP\AppFramework\Http\Attribute\ApiRoute;
 use OCP\AppFramework\Http\Attribute\NoAdminRequired;
 use OCP\AppFramework\Http\DataResponse;
+use OCP\AppFramework\OCSController;
 use OCP\Defaults;
 use OCP\IConfig;
 use OCP\IRequest;
-use OCP\IUserManager;
 use OCP\IUserSession;
 use OCP\L10N\IFactory;
 use OCP\PreConditionNotMetException;
-use OCP\ServerVersion;
 
 class WhatsNewController extends OCSController {
 	public function __construct(
 		string $appName,
 		IRequest $request,
-		CapabilitiesManager $capabilitiesManager,
 		private IUserSession $userSession,
-		IUserManager $userManager,
-		Manager $keyManager,
-		ServerVersion $serverVersion,
 		private IConfig $config,
 		private ChangesCheck $whatsNewService,
 		private IFactory $langFactory,
 		private Defaults $defaults,
 	) {
-		parent::__construct($appName, $request, $capabilitiesManager, $userSession, $userManager, $keyManager, $serverVersion);
+		parent::__construct($appName, $request);
 	}
 
 	/**

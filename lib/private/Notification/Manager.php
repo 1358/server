@@ -21,6 +21,8 @@ use OCP\Notification\IncompleteNotificationException;
 use OCP\Notification\IncompleteParsedNotificationException;
 use OCP\Notification\INotification;
 use OCP\Notification\INotifier;
+use OCP\Notification\IPreloadableNotifier;
+use OCP\Notification\NotificationPreloadReason;
 use OCP\Notification\UnknownNotificationException;
 use OCP\RichObjectStrings\IRichTextFormatter;
 use OCP\RichObjectStrings\IValidator;
@@ -217,7 +219,9 @@ class Manager implements IManager {
 	 * @since 8.2.0
 	 */
 	public function hasNotifiers(): bool {
-		return !empty($this->notifiers) || !empty($this->notifierClasses);
+		return !empty($this->notifiers)
+			|| !empty($this->notifierClasses)
+			|| (!$this->parsedRegistrationContext && !empty($this->coordinator->getRegistrationContext()->getNotifierServices()));
 	}
 
 	/**
@@ -386,6 +390,21 @@ class Manager implements IManager {
 		}
 
 		return $notification;
+	}
+
+	public function preloadDataForParsing(
+		array $notifications,
+		string $languageCode,
+		NotificationPreloadReason $reason,
+	): void {
+		$notifiers = $this->getNotifiers();
+		foreach ($notifiers as $notifier) {
+			if (!($notifier instanceof IPreloadableNotifier)) {
+				continue;
+			}
+
+			$notifier->preloadDataForParsing($notifications, $languageCode, $reason);
+		}
 	}
 
 	/**

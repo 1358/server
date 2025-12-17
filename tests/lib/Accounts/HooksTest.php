@@ -1,4 +1,7 @@
 <?php
+
+declare(strict_types=1);
+
 /**
  * SPDX-FileCopyrightText: 2016 Nextcloud GmbH and Nextcloud contributors
  * SPDX-License-Identifier: AGPL-3.0-or-later
@@ -20,17 +23,13 @@ use Test\TestCase;
  * Class HooksTest
  *
  * @package Test\Accounts
- * @group DB
  */
+#[\PHPUnit\Framework\Attributes\Group('DB')]
 class HooksTest extends TestCase {
-	/** @var LoggerInterface|MockObject */
-	private $logger;
 
-	/** @var AccountManager|MockObject */
-	private $accountManager;
-
-	/** @var Hooks */
-	private $hooks;
+	private LoggerInterface&MockObject $logger;
+	private AccountManager&MockObject $accountManager;
+	private Hooks $hooks;
 
 	protected function setUp(): void {
 		parent::setUp();
@@ -43,7 +42,6 @@ class HooksTest extends TestCase {
 	}
 
 	/**
-	 * @dataProvider dataTestChangeUserHook
 	 *
 	 * @param $params
 	 * @param $data
@@ -51,6 +49,7 @@ class HooksTest extends TestCase {
 	 * @param $setDisplayName
 	 * @param $error
 	 */
+	#[\PHPUnit\Framework\Attributes\DataProvider('dataTestChangeUserHook')]
 	public function testChangeUserHook($params, $data, $setEmail, $setDisplayName, $error): void {
 		if ($error) {
 			$this->accountManager->expects($this->never())->method('updateAccount');

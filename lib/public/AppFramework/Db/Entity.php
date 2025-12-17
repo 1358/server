@@ -19,10 +19,8 @@ use function substr;
  * @psalm-consistent-constructor
  */
 abstract class Entity {
-	/**
-	 * @var int
-	 */
-	public $id;
+	/** @var int $id */
+	public $id = null;
 
 	private array $_updatedFields = [];
 	/** @var array<string, \OCP\DB\Types::*> */
@@ -159,8 +157,8 @@ abstract class Entity {
 		if (property_exists($this, $name)) {
 			return $this->$name;
 		} else {
-			throw new \BadFunctionCallException($name .
-				' is not a valid attribute');
+			throw new \BadFunctionCallException($name
+				. ' is not a valid attribute');
 		}
 	}
 
@@ -180,8 +178,8 @@ abstract class Entity {
 		} elseif ($this->isGetterForBoolProperty($methodName)) {
 			return $this->getter(lcfirst(substr($methodName, 2)));
 		} else {
-			throw new \BadFunctionCallException($methodName .
-				' does not exist');
+			throw new \BadFunctionCallException($methodName
+				. ' does not exist');
 		}
 	}
 

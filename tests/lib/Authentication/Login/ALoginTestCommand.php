@@ -1,4 +1,5 @@
 <?php
+
 /**
  * SPDX-FileCopyrightText: 2019 Nextcloud GmbH and Nextcloud contributors
  * SPDX-License-Identifier: AGPL-3.0-or-later
@@ -82,6 +83,7 @@ abstract class ALoginTestCommand extends TestCase {
 			$this->request,
 			$this->username,
 			$this->password,
+			true,
 			$this->redirectUrl
 		);
 		$data->setUser($this->user);
@@ -93,6 +95,7 @@ abstract class ALoginTestCommand extends TestCase {
 			$this->request,
 			$this->username,
 			$this->password,
+			true,
 			null,
 			$this->timezone,
 			$this->timeZoneOffset

@@ -15,9 +15,7 @@ use OCP\Federation\ICloudIdManager;
 use PHPUnit\Framework\MockObject\MockObject;
 use Test\TestCase;
 
-/**
- * @group DB
- */
+#[\PHPUnit\Framework\Attributes\Group('DB')]
 class CloudIdTest extends TestCase {
 	protected CloudIdManager&MockObject $cloudIdManager;
 
@@ -37,9 +35,7 @@ class CloudIdTest extends TestCase {
 		];
 	}
 
-	/**
-	 * @dataProvider dataGetDisplayCloudId
-	 */
+	#[\PHPUnit\Framework\Attributes\DataProvider('dataGetDisplayCloudId')]
 	public function testGetDisplayCloudId(string $id, string $user, string $remote, string $display, ?string $addressbookName = null): void {
 		$this->cloudIdManager->expects($this->once())
 			->method('getDisplayNameFromContact')

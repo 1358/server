@@ -1,4 +1,5 @@
 <?php
+
 /**
  * SPDX-FileCopyrightText: 2018 Nextcloud GmbH and Nextcloud contributors
  * SPDX-License-Identifier: AGPL-3.0-or-later
@@ -23,6 +24,7 @@ use OCP\IUserSession;
 use OCP\Session\Exceptions\SessionNotAvailableException;
 use OCP\User\Backend\IPasswordConfirmationBackend;
 use Psr\Log\LoggerInterface;
+use ReflectionAttribute;
 use ReflectionMethod;
 
 class PasswordConfirmationMiddleware extends Middleware {
@@ -79,6 +81,9 @@ class PasswordConfirmationMiddleware extends Middleware {
 
 		if ($this->isPasswordConfirmationStrict($reflectionMethod)) {
 			$authHeader = $this->request->getHeader('Authorization');
+			if (!str_starts_with(strtolower($authHeader), 'basic ')) {
+				throw new NotConfirmedException('Required authorization header missing');
+			}
 			[, $password] = explode(':', base64_decode(substr($authHeader, 6)), 2);
 			$loginName = $this->session->get('loginname');
 			$loginResult = $this->userManager->checkPassword($loginName, $password);
@@ -111,6 +116,7 @@ class PasswordConfirmationMiddleware extends Middleware {
 	}
 
 	private function isPasswordConfirmationStrict(ReflectionMethod $reflectionMethod): bool {
+		/** @var ReflectionAttribute<PasswordConfirmationRequired>[] $attributes */
 		$attributes = $reflectionMethod->getAttributes(PasswordConfirmationRequired::class);
 		return !empty($attributes) && ($attributes[0]->newInstance()->getStrict());
 	}

@@ -1,4 +1,5 @@
 <?php
+
 /**
  * SPDX-FileCopyrightText: 2016 Nextcloud GmbH and Nextcloud contributors
  * SPDX-License-Identifier: AGPL-3.0-or-later
@@ -10,11 +11,10 @@ use OC\Authentication\Token\PublicKeyToken;
 use OC\Files\Filesystem;
 use OC\Lockdown\Filesystem\NullStorage;
 use OCP\Authentication\Token\IToken;
+use OCP\Server;
 use Test\Traits\UserTrait;
 
-/**
- * @group DB
- */
+#[\PHPUnit\Framework\Attributes\Group('DB')]
 class NoFSTest extends \Test\TestCase {
 	use UserTrait;
 
@@ -23,7 +23,7 @@ class NoFSTest extends \Test\TestCase {
 		$token->setScope([
 			IToken::SCOPE_FILESYSTEM => true
 		]);
-		\OC::$server->get('LockdownManager')->setToken($token);
+		Server::get('LockdownManager')->setToken($token);
 		parent::tearDown();
 	}
 
@@ -34,7 +34,7 @@ class NoFSTest extends \Test\TestCase {
 			IToken::SCOPE_FILESYSTEM => false
 		]);
 
-		\OC::$server->get('LockdownManager')->setToken($token);
+		Server::get('LockdownManager')->setToken($token);
 		$this->createUser('foo', 'var');
 	}
 

@@ -1,4 +1,5 @@
 <?php
+
 /**
  * SPDX-FileCopyrightText: 2016 Nextcloud GmbH and Nextcloud contributors
  * SPDX-License-Identifier: AGPL-3.0-or-later
@@ -24,6 +25,7 @@ use OCP\IL10N;
 use OCP\IURLGenerator;
 use OCP\IUser;
 use OCP\IUserManager;
+use OCP\Mail\IEmailValidator;
 use OCP\Mail\IMailer;
 use OCP\Security\Events\GenerateSecurePasswordEvent;
 use OCP\Security\IHasher;
@@ -69,6 +71,7 @@ class ShareByMailProvider extends DefaultShareProvider implements IShareProvider
 		private IHasher $hasher,
 		private IEventDispatcher $eventDispatcher,
 		private IShareManager $shareManager,
+		private IEmailValidator $emailValidator,
 	) {
 	}
 
@@ -245,7 +248,7 @@ class ShareByMailProvider extends DefaultShareProvider implements IShareProvider
 
 		$emails = $this->getSharedWithEmails($share);
 		$validEmails = array_filter($emails, function (string $email) {
-			return $this->mailer->validateMailAddress($email);
+			return $this->emailValidator->isValid($email);
 		});
 
 		if (count($validEmails) === 0) {
@@ -636,11 +639,6 @@ class ShareByMailProvider extends DefaultShareProvider implements IShareProvider
 		return $token;
 	}
 
-	/**
-	 * Get all children of this share
-	 *
-	 * @return IShare[]
-	 */
 	public function getChildren(IShare $parent): array {
 		$children = [];
 
@@ -652,7 +650,7 @@ class ShareByMailProvider extends DefaultShareProvider implements IShareProvider
 			->orderBy('id');
 
 		$cursor = $qb->executeQuery();
-		while ($data = $cursor->fetch()) {
+		while ($data = $cursor->fetchAssociative()) {
 			$children[] = $this->createShareObject($data);
 		}
 		$cursor->closeCursor();
@@ -722,11 +720,11 @@ class ShareByMailProvider extends DefaultShareProvider implements IShareProvider
 		// a real password was given
 		$validPassword = $plainTextPassword !== null && $plainTextPassword !== '';
 
-		if ($validPassword && ($originalShare->getPassword() !== $share->getPassword() ||
-								($originalShare->getSendPasswordByTalk() && !$share->getSendPasswordByTalk()))) {
+		if ($validPassword && ($originalShare->getPassword() !== $share->getPassword()
+								|| ($originalShare->getSendPasswordByTalk() && !$share->getSendPasswordByTalk()))) {
 			$emails = $this->getSharedWithEmails($share);
 			$validEmails = array_filter($emails, function ($email) {
-				return $this->mailer->validateMailAddress($email);
+				return $this->emailValidator->isValid($email);
 			});
 			$this->sendPassword($share, $plainTextPassword, $validEmails);
 		}
@@ -847,7 +845,7 @@ class ShareByMailProvider extends DefaultShareProvider implements IShareProvider
 
 		$cursor = $qb->executeQuery();
 		$shares = [];
-		while ($data = $cursor->fetch()) {
+		while ($data = $cursor->fetchAssociative()) {
 			$shares[] = $this->createShareObject($data);
 		}
 		$cursor->closeCursor();
@@ -867,7 +865,7 @@ class ShareByMailProvider extends DefaultShareProvider implements IShareProvider
 			->andWhere($qb->expr()->eq('share_type', $qb->createNamedParameter(IShare::TYPE_EMAIL)));
 
 		$cursor = $qb->executeQuery();
-		$data = $cursor->fetch();
+		$data = $cursor->fetchAssociative();
 		$cursor->closeCursor();
 
 		if ($data === false) {
@@ -898,7 +896,7 @@ class ShareByMailProvider extends DefaultShareProvider implements IShareProvider
 			->executeQuery();
 
 		$shares = [];
-		while ($data = $cursor->fetch()) {
+		while ($data = $cursor->fetchAssociative()) {
 			$shares[] = $this->createShareObject($data);
 		}
 		$cursor->closeCursor();
@@ -937,7 +935,7 @@ class ShareByMailProvider extends DefaultShareProvider implements IShareProvider
 
 		$cursor = $qb->executeQuery();
 
-		while ($data = $cursor->fetch()) {
+		while ($data = $cursor->fetchAssociative()) {
 			$shares[] = $this->createShareObject($data);
 		}
 		$cursor->closeCursor();
@@ -960,7 +958,7 @@ class ShareByMailProvider extends DefaultShareProvider implements IShareProvider
 			->andWhere($qb->expr()->eq('token', $qb->createNamedParameter($token)))
 			->executeQuery();
 
-		$data = $cursor->fetch();
+		$data = $cursor->fetchAssociative();
 
 		if ($data === false) {
 			throw new ShareNotFound('Share not found', $this->l->t('Could not find share'));
@@ -993,7 +991,7 @@ class ShareByMailProvider extends DefaultShareProvider implements IShareProvider
 	 */
 	protected function createShareObject(array $data): IShare {
 		$share = new Share($this->rootFolder, $this->userManager);
-		$share->setId((int)$data['id'])
+		$share->setId($data['id'])
 			->setShareType((int)$data['share_type'])
 			->setPermissions((int)$data['permissions'])
 			->setTarget($data['file_target'])
@@ -1101,7 +1099,7 @@ class ShareByMailProvider extends DefaultShareProvider implements IShareProvider
 			->where($qb->expr()->eq('id', $qb->createNamedParameter($id)));
 
 		$cursor = $qb->executeQuery();
-		$data = $cursor->fetch();
+		$data = $cursor->fetchAssociative();
 		$cursor->closeCursor();
 
 		if ($data === false) {
@@ -1155,7 +1153,7 @@ class ShareByMailProvider extends DefaultShareProvider implements IShareProvider
 
 		$cursor = $qb->executeQuery();
 		$shares = [];
-		while ($data = $cursor->fetch()) {
+		while ($data = $cursor->fetchAssociative()) {
 			$shares[$data['fileid']][] = $this->createShareObject($data);
 		}
 		$cursor->closeCursor();
@@ -1182,7 +1180,7 @@ class ShareByMailProvider extends DefaultShareProvider implements IShareProvider
 
 		$public = false;
 		$mail = [];
-		while ($row = $cursor->fetch()) {
+		while ($row = $cursor->fetchAssociative()) {
 			$public = true;
 			if ($currentAccess === false) {
 				$mail[] = $row['share_with'];
@@ -1210,7 +1208,7 @@ class ShareByMailProvider extends DefaultShareProvider implements IShareProvider
 			);
 
 		$cursor = $qb->executeQuery();
-		while ($data = $cursor->fetch()) {
+		while ($data = $cursor->fetchAssociative()) {
 			try {
 				$share = $this->createShareObject($data);
 			} catch (InvalidShare $e) {

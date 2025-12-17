@@ -8,12 +8,12 @@
 
 namespace Test\Memcache;
 
-/**
- * @group Memcache
- */
+use OC\Memcache\ArrayCache;
+
+#[\PHPUnit\Framework\Attributes\Group('Memcache')]
 class ArrayCacheTest extends Cache {
 	protected function setUp(): void {
 		parent::setUp();
-		$this->instance = new \OC\Memcache\ArrayCache('');
+		$this->instance = new ArrayCache('');
 	}
 }

@@ -38,7 +38,8 @@
     "Apps" : "Aplikasi",
     "Settings" : "Setelan",
     "Log out" : "Keluar",
-    "Email" : "Surel",
+    "Accounts" : "Accounts",
+    "Email" : "Email",
     "Phone" : "Telpon",
     "Twitter" : "Twitter",
     "Website" : "Situs",
@@ -125,9 +126,9 @@
     "Storage connection error. %s" : "Koneksi penyimpanan bermasalah. %s",
     "Storage is temporarily not available" : "Penyimpanan sementara tidak tersedia",
     "Storage connection timeout. %s" : "Koneksi penyimpanan waktu-habis. %s",
+    "Images" : "Gambar",
     "Text" : "Teks",
     "Summary" : "Kesimpulan",
-    "Translate" : "Terjemahkan",
-    "File is currently busy, please try again later" : "Berkas sedang sibuk, mohon coba lagi nanti"
+    "Translate" : "Terjemahkan"
 },"pluralForm" :"nplurals=1; plural=0;"
 }

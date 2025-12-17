@@ -1,4 +1,5 @@
 <?php
+
 /**
  * SPDX-FileCopyrightText: 2016 Nextcloud GmbH and Nextcloud contributors
  * SPDX-License-Identifier: AGPL-3.0-or-later
@@ -99,6 +100,9 @@ class S3 implements IObjectStore, IObjectStoreMultiPartUpload, IObjectStoreMetaD
 		$result = [];
 		foreach ($metadata as $key => $value) {
 			if (str_starts_with($key, 'x-amz-meta-')) {
+				if (str_starts_with($value, 'base64:')) {
+					$value = base64_decode(substr($value, 7));
+				}
 				$result[substr($key, strlen('x-amz-meta-'))] = $value;
 			}
 		}

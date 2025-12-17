@@ -10,65 +10,59 @@ declare(strict_types=1);
 
 namespace Test\BackgroundJob;
 
+use OC\BackgroundJob\JobList;
 use OCP\AppFramework\Utility\ITimeFactory;
-use OCP\BackgroundJob\IJob;
 use OCP\DB\QueryBuilder\IQueryBuilder;
 use OCP\IConfig;
+use OCP\IDBConnection;
+use OCP\Server;
+use OCP\Snowflake\IGenerator;
+use PHPUnit\Framework\Attributes\DataProvider;
+use PHPUnit\Framework\MockObject\MockObject;
 use Psr\Log\LoggerInterface;
 use Test\TestCase;
 
 /**
  * Class JobList
  *
- * @group DB
  * @package Test\BackgroundJob
  */
+#[\PHPUnit\Framework\Attributes\Group('DB')]
 class JobListTest extends TestCase {
-	/** @var \OC\BackgroundJob\JobList */
-	protected $instance;
-
-	/** @var \OCP\IDBConnection */
-	protected $connection;
-
-	/** @var \OCP\IConfig|\PHPUnit\Framework\MockObject\MockObject */
-	protected $config;
-
-	/** @var \OCP\AppFramework\Utility\ITimeFactory|\PHPUnit\Framework\MockObject\MockObject */
-	protected $timeFactory;
-	private bool $ran = false;
+	protected JobList $instance;
+	protected IDBConnection $connection;
+	protected IConfig&MockObject $config;
+	protected ITimeFactory&MockObject $timeFactory;
 
 	protected function setUp(): void {
 		parent::setUp();
 
-		$this->connection = \OC::$server->getDatabaseConnection();
+		$this->connection = Server::get(IDBConnection::class);
 		$this->clearJobsList();
 		$this->config = $this->createMock(IConfig::class);
 		$this->timeFactory = $this->createMock(ITimeFactory::class);
-		$this->instance = new \OC\BackgroundJob\JobList(
+		$this->instance = new JobList(
 			$this->connection,
 			$this->config,
 			$this->timeFactory,
-			\OC::$server->get(LoggerInterface::class),
+			Server::get(LoggerInterface::class),
+			Server::get(IGenerator::class),
 		);
 	}
 
-	protected function clearJobsList() {
+	protected function clearJobsList(): void {
 		$query = $this->connection->getQueryBuilder();
 		$query->delete('jobs');
-		$query->execute();
+		$query->executeStatement();
 	}
 
-	protected function getAllSorted() {
+	protected function getAllSorted(): array {
 		$iterator = $this->instance->getJobsIterator(null, null, 0);
 		$jobs = [];
 
 		foreach ($iterator as $job) {
 			$jobs[] = clone $job;
 		}
-
-		usort($jobs, function (IJob $job1, IJob $job2) {
-			return $job1->getId() - $job2->getId();
-		});
 
 		return $jobs;
 	}
@@ -86,11 +80,8 @@ class JobListTest extends TestCase {
 		];
 	}
 
-	/**
-	 * @dataProvider argumentProvider
-	 * @param $argument
-	 */
-	public function testAddRemove($argument): void {
+	#[DataProvider('argumentProvider')]
+	public function testAddRemove(mixed $argument): void {
 		$existingJobs = $this->getAllSorted();
 		$job = new TestJob();
 		$this->instance->add($job, $argument);
@@ -108,11 +99,8 @@ class JobListTest extends TestCase {
 		$this->assertEquals($existingJobs, $jobs);
 	}
 
-	/**
-	 * @dataProvider argumentProvider
-	 * @param $argument
-	 */
-	public function testRemoveDifferentArgument($argument): void {
+	#[DataProvider('argumentProvider')]
+	public function testRemoveDifferentArgument(mixed $argument): void {
 		$existingJobs = $this->getAllSorted();
 		$job = new TestJob();
 		$this->instance->add($job, $argument);
@@ -129,11 +117,8 @@ class JobListTest extends TestCase {
 		$this->assertEquals($existingJobs, $jobs);
 	}
 
-	/**
-	 * @dataProvider argumentProvider
-	 * @param $argument
-	 */
-	public function testHas($argument): void {
+	#[DataProvider('argumentProvider')]
+	public function testHas(mixed $argument): void {
 		$job = new TestJob();
 		$this->assertFalse($this->instance->has($job, $argument));
 		$this->instance->add($job, $argument);
@@ -145,11 +130,8 @@ class JobListTest extends TestCase {
 		$this->assertFalse($this->instance->has($job, $argument));
 	}
 
-	/**
-	 * @dataProvider argumentProvider
-	 * @param $argument
-	 */
-	public function testHasDifferentArgument($argument): void {
+	#[DataProvider('argumentProvider')]
+	public function testHasDifferentArgument(mixed $argument): void {
 		$job = new TestJob();
 		$this->instance->add($job, $argument);
 
@@ -160,14 +142,16 @@ class JobListTest extends TestCase {
 		$argument,
 		int $reservedTime = 0,
 		int $lastChecked = 0,
-		int $lastRun = 0): int {
+		int $lastRun = 0): string {
 		if ($lastChecked === 0) {
 			$lastChecked = time();
 		}
+		$id = Server::get(IGenerator::class)->nextId();
 
 		$query = $this->connection->getQueryBuilder();
 		$query->insert('jobs')
 			->values([
+				'id' => $query->createNamedParameter($id, IQueryBuilder::PARAM_INT),
 				'class' => $query->createNamedParameter($class),
 				'argument' => $query->createNamedParameter($argument),
 				'last_run' => $query->createNamedParameter($lastRun, IQueryBuilder::PARAM_INT),
@@ -175,7 +159,7 @@ class JobListTest extends TestCase {
 				'reserved_at' => $query->createNamedParameter($reservedTime, IQueryBuilder::PARAM_INT),
 			]);
 		$query->executeStatement();
-		return $query->getLastInsertId();
+		return $id;
 	}
 
 	public function testGetNext(): void {
@@ -238,9 +222,9 @@ class JobListTest extends TestCase {
 	}
 
 	/**
-	 * @dataProvider argumentProvider
 	 * @param $argument
 	 */
+	#[DataProvider('argumentProvider')]
 	public function testGetById($argument): void {
 		$job = new TestJob();
 		$this->instance->add($job, $argument);
@@ -277,10 +261,10 @@ class JobListTest extends TestCase {
 			->method('getTime')
 			->willReturn(123456789);
 
-		$job = new TestJob($this->timeFactory, $this, function () {
+		$job = new TestJob($this->timeFactory, $this, function (): void {
 		});
 
-		$job2 = new TestJob($this->timeFactory, $this, function () {
+		$job2 = new TestJob($this->timeFactory, $this, function (): void {
 		});
 
 		$this->instance->add($job, 1);
@@ -310,10 +294,10 @@ class JobListTest extends TestCase {
 				return time();
 			});
 
-		$job = new TestParallelAwareJob($this->timeFactory, $this, function () {
+		$job = new TestParallelAwareJob($this->timeFactory, $this, function (): void {
 		});
 
-		$job2 = new TestParallelAwareJob($this->timeFactory, $this, function () {
+		$job2 = new TestParallelAwareJob($this->timeFactory, $this, function (): void {
 		});
 
 		$this->instance->add($job, 1);
@@ -330,9 +314,5 @@ class JobListTest extends TestCase {
 		$this->assertTrue($this->instance->hasReservedJob(TestParallelAwareJob::class));
 		$job = $this->instance->getNext();
 		$this->assertNull($job); // Job doesn't allow parallel runs
-	}
-
-	public function markRun() {
-		$this->ran = true;
 	}
 }

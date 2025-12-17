@@ -1,4 +1,5 @@
 <?php
+
 /**
  * SPDX-FileCopyrightText: 2016-2024 Nextcloud GmbH and Nextcloud contributors
  * SPDX-FileCopyrightText: 2016 ownCloud, Inc.
@@ -9,34 +10,26 @@ use GuzzleHttp\Client;
 use PHPUnit\Framework\Assert;
 use Psr\Http\Message\ResponseInterface;
 
-require __DIR__ . '/../../vendor/autoload.php';
+require __DIR__ . '/autoload.php';
 
 
 
 trait Sharing {
 	use Provisioning;
 
-	/** @var int */
-	private $sharingApiVersion = 1;
-
-	/** @var SimpleXMLElement */
-	private $lastShareData = null;
+	private int $sharingApiVersion = 1;
+	private ?SimpleXMLElement $lastShareData = null;
 
 	/** @var SimpleXMLElement[] */
-	private $storedShareData = [];
-
-	/** @var int */
-	private $savedShareId = null;
-
+	private array $storedShareData = [];
+	private ?string $savedShareId = null;
 	/** @var ResponseInterface */
 	private $response;
 
 	/**
 	 * @Given /^as "([^"]*)" creating a share with$/
-	 * @param string $user
-	 * @param TableNode|null $body
 	 */
-	public function asCreatingAShareWith($user, $body) {
+	public function asCreatingAShareWith(string $user, ?TableNode $body): void {
 		$fullUrl = $this->baseUrl . "v{$this->apiVersion}.php/apps/files_sharing/api/v{$this->sharingApiVersion}/shares";
 		$client = new Client();
 		$options = [
@@ -77,29 +70,28 @@ trait Sharing {
 	/**
 	 * @When /^save the last share data as "([^"]*)"$/
 	 */
-	public function saveLastShareData($name) {
+	public function saveLastShareData(string $name): void {
 		$this->storedShareData[$name] = $this->lastShareData;
 	}
 
 	/**
 	 * @When /^restore the last share data from "([^"]*)"$/
 	 */
-	public function restoreLastShareData($name) {
+	public function restoreLastShareData(string $name): void {
 		$this->lastShareData = $this->storedShareData[$name];
 	}
 
 	/**
 	 * @When /^creating a share with$/
-	 * @param TableNode|null $body
 	 */
-	public function creatingShare($body) {
+	public function creatingShare(?TableNode $body): void {
 		$this->asCreatingAShareWith($this->currentUser, $body);
 	}
 
 	/**
 	 * @When /^accepting last share$/
 	 */
-	public function acceptingLastShare() {
+	public function acceptingLastShare(): void {
 		$share_id = $this->lastShareData->data[0]->id;
 		$url = "/apps/files_sharing/api/v{$this->sharingApiVersion}/shares/pending/$share_id";
 		$this->sendingToWith('POST', $url, null);
@@ -109,10 +101,8 @@ trait Sharing {
 
 	/**
 	 * @When /^user "([^"]*)" accepts last share$/
-	 *
-	 * @param string $user
 	 */
-	public function userAcceptsLastShare(string $user) {
+	public function userAcceptsLastShare(string $user): void {
 		// "As userXXX" and "user userXXX accepts last share" steps are not
 		// expected to be used in the same scenario, but restore the user just
 		// in case.
@@ -132,7 +122,7 @@ trait Sharing {
 	/**
 	 * @Then /^last link share can be downloaded$/
 	 */
-	public function lastLinkShareCanBeDownloaded() {
+	public function lastLinkShareCanBeDownloaded(): void {
 		if (count($this->lastShareData->data->element) > 0) {
 			$url = $this->lastShareData->data[0]->url;
 		} else {
@@ -145,7 +135,7 @@ trait Sharing {
 	/**
 	 * @Then /^last share can be downloaded$/
 	 */
-	public function lastShareCanBeDownloaded() {
+	public function lastShareCanBeDownloaded(): void {
 		if (count($this->lastShareData->data->element) > 0) {
 			$token = $this->lastShareData->data[0]->token;
 		} else {
@@ -304,6 +294,18 @@ trait Sharing {
 		}
 	}
 
+	public function getFieldValueInResponse($field) {
+		$data = simplexml_load_string($this->response->getBody())->data[0];
+		if (count($data->element) > 0) {
+			foreach ($data as $element) {
+				return (string)$element->$field;
+			}
+
+			return false;
+		}
+		return $data->$field;
+	}
+
 	public function isFieldInResponse($field, $contentExpected) {
 		$data = simplexml_load_string($this->response->getBody())->data[0];
 		if ((string)$field == 'expiration') {
@@ -336,6 +338,8 @@ trait Sharing {
 				return $this->isExpectedUrl((string)$data->$field, 'index.php/s/');
 			} elseif ($contentExpected == $data->$field) {
 				return true;
+			} else {
+				print($data->$field);
 			}
 			return false;
 		}
@@ -518,7 +522,7 @@ trait Sharing {
 	/**
 	 * @Then the list of returned shares has :count shares
 	 */
-	public function theListOfReturnedSharesHasShares(int $count) {
+	public function theListOfReturnedSharesHasShares(int $count): void {
 		$this->theHTTPStatusCodeShouldBe('200');
 		$this->theOCSStatusCodeShouldBe('100');
 
@@ -561,18 +565,18 @@ trait Sharing {
 		];
 		$expectedFields = array_merge($defaultExpectedFields, $body->getRowsHash());
 
-		if (!array_key_exists('uid_file_owner', $expectedFields) &&
-				array_key_exists('uid_owner', $expectedFields)) {
+		if (!array_key_exists('uid_file_owner', $expectedFields)
+				&& array_key_exists('uid_owner', $expectedFields)) {
 			$expectedFields['uid_file_owner'] = $expectedFields['uid_owner'];
 		}
-		if (!array_key_exists('displayname_file_owner', $expectedFields) &&
-				array_key_exists('displayname_owner', $expectedFields)) {
+		if (!array_key_exists('displayname_file_owner', $expectedFields)
+				&& array_key_exists('displayname_owner', $expectedFields)) {
 			$expectedFields['displayname_file_owner'] = $expectedFields['displayname_owner'];
 		}
 
-		if (array_key_exists('share_type', $expectedFields) &&
-				$expectedFields['share_type'] == 10 /* IShare::TYPE_ROOM */ &&
-				array_key_exists('share_with', $expectedFields)) {
+		if (array_key_exists('share_type', $expectedFields)
+				&& $expectedFields['share_type'] == 10 /* IShare::TYPE_ROOM */
+				&& array_key_exists('share_with', $expectedFields)) {
 			if ($expectedFields['share_with'] === 'private_conversation') {
 				$expectedFields['share_with'] = 'REGEXP /^private_conversation_[0-9a-f]{6}$/';
 			} else {
@@ -694,7 +698,13 @@ trait Sharing {
 		if ($body instanceof TableNode) {
 			$parameters = [];
 			foreach ($body->getRowsHash() as $key => $value) {
-				$parameters[] = $key . '=' . $value;
+				if ($key === 'shareTypes') {
+					foreach (explode(' ', $value) as $shareType) {
+						$parameters[] = 'shareType[]=' . $shareType;
+					}
+				} else {
+					$parameters[] = $key . '=' . $value;
+				}
 			}
 			if (!empty($parameters)) {
 				$url .= '?' . implode('&', $parameters);
@@ -729,9 +739,46 @@ trait Sharing {
 			$shareeType = substr($shareeType, 6);
 		}
 
+		// "simplexml_load_string" creates a SimpleXMLElement object for each
+		// XML element with child elements. In turn, each child is indexed by
+		// its tag in the SimpleXMLElement object. However, when there are
+		// several child XML elements with the same tag, an array with all the
+		// children with the same tag is indexed instead. Therefore, when the
+		// XML contains
+		// <XXX>
+		//   <element>
+		//     <label>...</label>
+		//     <value>...</value>
+		//   </element>
+		// </XXX>
+		// the "$elements[$shareeType]" variable contains an "element" key which
+		// in turn contains "label" and "value" keys, but when the XML contains
+		// <XXX>
+		//   <element>
+		//     <label>...</label>
+		//     <value>...</value>
+		//   </element>
+		//   <element>
+		//     <label>...</label>
+		//     <value>...</value>
+		//   </element>
+		// </XXX>
+		// the "$elements[$shareeType]" variable contains an "element" key which
+		// in turn contains "0" and "1" keys, and in turn each one contains
+		// "label" and "value" keys.
+		if (array_key_exists('element', $elements[$shareeType]) && is_int(array_keys($elements[$shareeType]['element'])[0])) {
+			$elements[$shareeType] = $elements[$shareeType]['element'];
+		}
+
 		$sharees = [];
 		foreach ($elements[$shareeType] as $element) {
-			$sharees[] = [$element['label'], $element['value']['shareType'], $element['value']['shareWith']];
+			$sharee = [$element['label'], $element['value']['shareType'], $element['value']['shareWith']];
+
+			if (array_key_exists('shareWithDisplayNameUnique', $element)) {
+				$sharee[] = $element['shareWithDisplayNameUnique'];
+			}
+
+			$sharees[] = $sharee;
 		}
 		return $sharees;
 	}

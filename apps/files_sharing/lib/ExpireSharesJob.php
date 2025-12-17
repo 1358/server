@@ -1,4 +1,5 @@
 <?php
+
 /**
  * SPDX-FileCopyrightText: 2017-2024 Nextcloud GmbH and Nextcloud contributors
  * SPDX-FileCopyrightText: 2016 ownCloud, Inc.
@@ -57,7 +58,7 @@ class ExpireSharesJob extends TimedJob {
 			);
 
 		$shares = $qb->executeQuery();
-		while ($share = $shares->fetch()) {
+		while ($share = $shares->fetchAssociative()) {
 			if ((int)$share['share_type'] === IShare::TYPE_LINK) {
 				$id = 'ocinternal';
 			} elseif ((int)$share['share_type'] === IShare::TYPE_EMAIL) {

@@ -1,4 +1,5 @@
 <?php
+
 /**
  * SPDX-FileCopyrightText: 2016-2024 Nextcloud GmbH and Nextcloud contributors
  * SPDX-FileCopyrightText: 2016 ownCloud, Inc.
@@ -8,19 +9,21 @@
 namespace Test\Repair;
 
 use OC\Repair\RepairInvalidShares;
+use OCP\Constants;
 use OCP\IConfig;
 use OCP\IDBConnection;
 use OCP\Migration\IOutput;
+use OCP\Server;
 use OCP\Share\IShare;
 use Test\TestCase;
 
 /**
  * Tests for repairing invalid shares
  *
- * @group DB
  *
  * @see \OC\Repair\RepairInvalidShares
  */
+#[\PHPUnit\Framework\Attributes\Group('DB')]
 class RepairInvalidSharesTest extends TestCase {
 
 	private RepairInvalidShares $repair;
@@ -37,7 +40,7 @@ class RepairInvalidSharesTest extends TestCase {
 			->with('version')
 			->willReturn('12.0.0.0');
 
-		$this->connection = \OCP\Server::get(IDBConnection::class);
+		$this->connection = Server::get(IDBConnection::class);
 		$this->deleteAllShares();
 
 		$this->repair = new RepairInvalidShares($config, $this->connection);
@@ -101,7 +104,7 @@ class RepairInvalidSharesTest extends TestCase {
 			->from('share')
 			->orderBy('id', 'ASC')
 			->executeQuery();
-		$rows = $result->fetchAll();
+		$rows = $result->fetchAllAssociative();
 		$this->assertEquals([['id' => $parent], ['id' => $validChild], ['id' => $invalidChild]], $rows);
 		$result->closeCursor();
 
@@ -117,7 +120,7 @@ class RepairInvalidSharesTest extends TestCase {
 			->from('share')
 			->orderBy('id', 'ASC')
 			->executeQuery();
-		$rows = $result->fetchAll();
+		$rows = $result->fetchAllAssociative();
 		$this->assertEquals([['id' => $parent], ['id' => $validChild]], $rows);
 		$result->closeCursor();
 	}
@@ -133,23 +136,22 @@ class RepairInvalidSharesTest extends TestCase {
 			// unchanged for read-write + share
 			[
 				'file',
-				\OCP\Constants::PERMISSION_READ | \OCP\Constants::PERMISSION_UPDATE | \OCP\Constants::PERMISSION_SHARE,
-				\OCP\Constants::PERMISSION_READ | \OCP\Constants::PERMISSION_UPDATE | \OCP\Constants::PERMISSION_SHARE,
+				Constants::PERMISSION_READ | Constants::PERMISSION_UPDATE | Constants::PERMISSION_SHARE,
+				Constants::PERMISSION_READ | Constants::PERMISSION_UPDATE | Constants::PERMISSION_SHARE,
 			],
 			// fixed for all perms
 			[
 				'file',
-				\OCP\Constants::PERMISSION_READ | \OCP\Constants::PERMISSION_CREATE | \OCP\Constants::PERMISSION_UPDATE | \OCP\Constants::PERMISSION_DELETE | \OCP\Constants::PERMISSION_SHARE,
-				\OCP\Constants::PERMISSION_READ | \OCP\Constants::PERMISSION_UPDATE | \OCP\Constants::PERMISSION_SHARE,
+				Constants::PERMISSION_READ | Constants::PERMISSION_CREATE | Constants::PERMISSION_UPDATE | Constants::PERMISSION_DELETE | Constants::PERMISSION_SHARE,
+				Constants::PERMISSION_READ | Constants::PERMISSION_UPDATE | Constants::PERMISSION_SHARE,
 			],
 		];
 	}
 
 	/**
 	 * Test adjusting file share permissions
-	 *
-	 * @dataProvider fileSharePermissionsProvider
 	 */
+	#[\PHPUnit\Framework\Attributes\DataProvider('fileSharePermissionsProvider')]
 	public function testFileSharePermissions($itemType, $testPerms, $expectedPerms): void {
 		$qb = $this->connection->getQueryBuilder();
 		$qb->insert('share')
@@ -178,7 +180,7 @@ class RepairInvalidSharesTest extends TestCase {
 			->from('share')
 			->orderBy('permissions', 'ASC')
 			->executeQuery()
-			->fetchAll();
+			->fetchAllAssociative();
 
 		$this->assertCount(1, $results);
 

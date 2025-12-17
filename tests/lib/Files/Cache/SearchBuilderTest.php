@@ -1,4 +1,5 @@
 <?php
+
 /**
  * SPDX-FileCopyrightText: 2017 Nextcloud GmbH and Nextcloud contributors
  * SPDX-License-Identifier: AGPL-3.0-or-later
@@ -16,11 +17,11 @@ use OCP\Files\Search\ISearchBinaryOperator;
 use OCP\Files\Search\ISearchComparison;
 use OCP\Files\Search\ISearchOperator;
 use OCP\FilesMetadata\IFilesMetadataManager;
+use OCP\IDBConnection;
+use OCP\Server;
 use Test\TestCase;
 
-/**
- * @group DB
- */
+#[\PHPUnit\Framework\Attributes\Group('DB')]
 class SearchBuilderTest extends TestCase {
 	/** @var IQueryBuilder */
 	private $builder;
@@ -39,7 +40,7 @@ class SearchBuilderTest extends TestCase {
 
 	protected function setUp(): void {
 		parent::setUp();
-		$this->builder = \OC::$server->getDatabaseConnection()->getQueryBuilder();
+		$this->builder = Server::get(IDBConnection::class)->getQueryBuilder();
 		$this->mimetypeLoader = $this->createMock(IMimeTypeLoader::class);
 		$this->filesMetadataManager = $this->createMock(IFilesMetadataManager::class);
 
@@ -76,12 +77,12 @@ class SearchBuilderTest extends TestCase {
 	protected function tearDown(): void {
 		parent::tearDown();
 
-		$builder = \OC::$server->getDatabaseConnection()->getQueryBuilder();
+		$builder = Server::get(IDBConnection::class)->getQueryBuilder();
 
 		$builder->delete('filecache')
 			->where($builder->expr()->eq('storage', $builder->createNamedParameter($this->numericStorageId, IQueryBuilder::PARAM_INT)));
 
-		$builder->execute();
+		$builder->executeStatement();
 	}
 
 	private function addCacheEntry(array $data) {
@@ -109,7 +110,7 @@ class SearchBuilderTest extends TestCase {
 			$data['mimetype'] = 1;
 		}
 
-		$builder = \OC::$server->getDatabaseConnection()->getQueryBuilder();
+		$builder = Server::get(IDBConnection::class)->getQueryBuilder();
 
 		$values = [];
 		foreach ($data as $key => $value) {
@@ -118,7 +119,7 @@ class SearchBuilderTest extends TestCase {
 
 		$builder->insert('filecache')
 			->values($values)
-			->execute();
+			->executeStatement();
 
 		return $builder->getLastInsertId();
 	}
@@ -127,8 +128,8 @@ class SearchBuilderTest extends TestCase {
 		$dbOperator = $this->searchBuilder->searchOperatorToDBExpr($this->builder, $operator);
 		$this->builder->andWhere($dbOperator);
 
-		$result = $this->builder->execute();
-		$rows = $result->fetchAll(\PDO::FETCH_COLUMN);
+		$result = $this->builder->executeQuery();
+		$rows = $result->fetchFirstColumn();
 		$result->closeCursor();
 
 		return $rows;
@@ -175,11 +176,11 @@ class SearchBuilderTest extends TestCase {
 	}
 
 	/**
-	 * @dataProvider comparisonProvider
 	 *
 	 * @param ISearchOperator $operator
 	 * @param array $fileIds
 	 */
+	#[\PHPUnit\Framework\Attributes\DataProvider('comparisonProvider')]
 	public function testComparison(ISearchOperator $operator, array $fileIds): void {
 		$fileId = [];
 		$fileId[] = $this->addCacheEntry([

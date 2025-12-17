@@ -11,16 +11,15 @@ use Exception;
 use OC\ServerNotAvailableException;
 use OCA\User_LDAP\User\OfflineUser;
 use OCP\Cache\CappedMemoryCache;
+use OCP\Config\IUserConfig;
 use OCP\Group\Backend\ABackend;
 use OCP\Group\Backend\IDeleteGroupBackend;
 use OCP\Group\Backend\IGetDisplayNameBackend;
 use OCP\Group\Backend\IIsAdminBackend;
 use OCP\GroupInterface;
-use OCP\IConfig;
 use OCP\IUserManager;
 use OCP\Server;
 use Psr\Log\LoggerInterface;
-use function json_decode;
 
 class Group_LDAP extends ABackend implements GroupInterface, IGroupLDAP, IGetDisplayNameBackend, IDeleteGroupBackend, IIsAdminBackend {
 	protected bool $enabled = false;
@@ -41,7 +40,7 @@ class Group_LDAP extends ABackend implements GroupInterface, IGroupLDAP, IGetDis
 	public function __construct(
 		protected Access $access,
 		protected GroupPluginManager $groupPluginManager,
-		private IConfig $config,
+		private IUserConfig $userConfig,
 		private IUserManager $ncUserManager,
 	) {
 		$filter = $this->access->connection->ldapGroupFilter;
@@ -643,8 +642,9 @@ class Group_LDAP extends ABackend implements GroupInterface, IGroupLDAP, IGetDis
 	 * @return list<string>
 	 */
 	protected function getCachedGroupsForUserId(string $uid): array {
-		$groupStr = $this->config->getUserValue($uid, 'user_ldap', 'cached-group-memberships-' . $this->access->connection->getConfigPrefix(), '[]');
-		return json_decode($groupStr, true) ?? [];
+		/** @var list<string> $cache */
+		$cache = $this->userConfig->getValueArray($uid, 'user_ldap', 'cached-group-memberships-' . $this->access->connection->getConfigPrefix());
+		return $cache;
 	}
 
 	/**
@@ -800,8 +800,7 @@ class Group_LDAP extends ABackend implements GroupInterface, IGroupLDAP, IGetDis
 		$groups = array_values(array_unique($groups, SORT_LOCALE_STRING));
 		$this->access->connection->writeToCache($cacheKey, $groups);
 
-		$groupStr = \json_encode($groups);
-		$this->config->setUserValue($ncUid, 'user_ldap', 'cached-group-memberships-' . $this->access->connection->getConfigPrefix(), $groupStr);
+		$this->userConfig->setValueArray($ncUid, 'user_ldap', 'cached-group-memberships-' . $this->access->connection->getConfigPrefix(), $groups);
 
 		return $groups;
 	}
@@ -1019,9 +1018,9 @@ class Group_LDAP extends ABackend implements GroupInterface, IGroupLDAP, IGetDis
 			return $groupUsers;
 		}
 		$search = $this->access->escapeFilterPart($search, true);
-		$isMemberUid =
-			($this->ldapGroupMemberAssocAttr === 'memberuid' ||
-				$this->ldapGroupMemberAssocAttr === 'zimbramailforwardingaddress');
+		$isMemberUid
+			= ($this->ldapGroupMemberAssocAttr === 'memberuid'
+				|| $this->ldapGroupMemberAssocAttr === 'zimbramailforwardingaddress');
 
 		//we need to apply the search filter
 		//alternatives that need to be checked:
@@ -1199,10 +1198,10 @@ class Group_LDAP extends ABackend implements GroupInterface, IGroupLDAP, IGetDis
 	 * compared with GroupInterface::CREATE_GROUP etc.
 	 */
 	public function implementsActions($actions): bool {
-		return (bool)((GroupInterface::COUNT_USERS |
-				GroupInterface::DELETE_GROUP |
-				GroupInterface::IS_ADMIN |
-				$this->groupPluginManager->getImplementedActions()) & $actions);
+		return (bool)((GroupInterface::COUNT_USERS
+				| GroupInterface::DELETE_GROUP
+				| GroupInterface::IS_ADMIN
+				| $this->groupPluginManager->getImplementedActions()) & $actions);
 	}
 
 	/**

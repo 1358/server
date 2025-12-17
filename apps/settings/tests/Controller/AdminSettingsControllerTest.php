@@ -1,4 +1,5 @@
 <?php
+
 /**
  * SPDX-FileCopyrightText: 2016 Nextcloud GmbH and Nextcloud contributors
  * SPDX-License-Identifier: AGPL-3.0-or-later
@@ -25,10 +26,10 @@ use Test\TestCase;
 /**
  * Class AdminSettingsControllerTest
  *
- * @group DB
  *
  * @package Tests\Settings\Controller
  */
+#[\PHPUnit\Framework\Attributes\Group('DB')]
 class AdminSettingsControllerTest extends TestCase {
 
 	private IRequest&MockObject $request;

@@ -62,16 +62,19 @@ jobs:
           - '--tags ~@large files_features'
           - 'filesdrop_features'
           - 'file_conversions'
+          - 'files_reminders'
           - 'openldap_features'
           - 'openldap_numerical_features'
           - 'ldap_features'
           - 'remoteapi_features'
+          - 'routing_features'
           - 'setup_features'
           - 'sharees_features'
           - 'sharing_features'
+          - 'theming_features'
           - 'videoverification_features'
 
-        php-versions: ['8.1']
+        php-versions: ['8.4']
         spreed-versions: ['main']
         activity-versions: ['master']
 
@@ -82,9 +85,10 @@ jobs:
         ports:
           - 6379:6379/tcp
       openldap:
-        image: ghcr.io/nextcloud/continuous-integration-openldap:openldap-7 # zizmor: ignore[unpinned-images]
+        image: ghcr.io/nextcloud/continuous-integration-openldap:openldap-8 # zizmor: ignore[unpinned-images]
         ports:
           - 389:389
+          - 636:636
         env:
           SLAPD_DOMAIN: nextcloud.ci
           SLAPD_ORGANIZATION: Nextcloud
@@ -93,14 +97,14 @@ jobs:
 
     steps:
       - name: Checkout server
-        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+        uses: actions/checkout@1af3b93b6815bc44a9784bd300feb67ff0d1eeb3 # v6.0.0
         with:
           persist-credentials: false
           submodules: true
 
       - name: Checkout Talk app
         if: ${{ matrix.test-suite == 'videoverification_features' }}
-        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+        uses: actions/checkout@1af3b93b6815bc44a9784bd300feb67ff0d1eeb3 # v6.0.0
         with:
           persist-credentials: false
           repository: nextcloud/spreed
@@ -109,7 +113,7 @@ jobs:
 
       - name: Checkout Activity app
         if: ${{ matrix.test-suite == 'sharing_features' }}
-        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+        uses: actions/checkout@1af3b93b6815bc44a9784bd300feb67ff0d1eeb3 # v6.0.0
         with:
           persist-credentials: false
           repository: nextcloud/activity
@@ -117,7 +121,7 @@ jobs:
           ref: ${{ matrix.activity-versions }}
 
       - name: Set up php ${{ matrix.php-versions }}
-        uses: shivammathur/setup-php@cf4cade2721270509d5b1c766ab3549210a39a2a #v2.33.0
+        uses: shivammathur/setup-php@bf6b4fbd49ca58e4608c9c89fba0b8d90bd2a39f #v2.35.5
         with:
           php-version: ${{ matrix.php-versions }}
           # https://docs.nextcloud.com/server/stable/admin_manual/installation/source_installation.html#prerequisites-for-manual-installation
@@ -127,12 +131,9 @@ jobs:
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
-      - name: Set up production dependencies
-        run: composer i --no-dev
-
-      - name: Set up behat dependencies
-        working-directory: build/integration
-        run: composer i
+      - name: Set up dependencies
+        run: |
+          composer install
 
       - name: Set up Talk dependencies
         if: ${{ matrix.test-suite == 'videoverification_features' }}
@@ -163,7 +164,7 @@ jobs:
       - name: Print logs
         if: always()
         run: |
-          cat data/nextcloud.log
+          cat $(./occ log:file |grep "Log file"|cut -d" " -f3)
           docker ps -a
           docker ps -aq | while read container ; do IMAGE=$(docker inspect --format='{{.Config.Image}}' $container); echo $IMAGE; docker logs $container; echo "\n\n" ; done
 

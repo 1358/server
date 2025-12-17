@@ -1,4 +1,5 @@
 <?php
+
 /**
  * SPDX-FileCopyrightText: 2017 Nextcloud GmbH and Nextcloud contributors
  * SPDX-License-Identifier: AGPL-3.0-or-later
@@ -7,14 +8,13 @@
 namespace Test\Command;
 
 use OC\Command\CronBus;
+use OCP\BackgroundJob\IJobList;
 use Test\BackgroundJob\DummyJobList;
 
-/**
- * @group DB
- */
+#[\PHPUnit\Framework\Attributes\Group('DB')]
 class CronBusTest extends AsyncBusTestCase {
 	/**
-	 * @var \OCP\BackgroundJob\IJobList
+	 * @var IJobList
 	 */
 	private $jobList;
 

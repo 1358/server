@@ -2,12 +2,12 @@
  * SPDX-FileCopyrightText: 2024 Nextcloud GmbH and Nextcloud contributors
  * SPDX-License-Identifier: AGPL-3.0-or-later
  */
-import type { User } from '@nextcloud/cypress'
+import type { User } from '@nextcloud/e2e-test-server/cypress'
+
 import { getRowForFile } from '../../files/FilesUtils.ts'
-import { createShare, setupData } from './setup-public-share.ts'
+import { createLinkShare, setupData } from './PublicShareUtils.ts'
 
 describe('files_sharing: Public share - setting the default view mode', () => {
-
 	let user: User
 
 	beforeEach(() => {
@@ -18,7 +18,7 @@ describe('files_sharing: Public share - setting the default view mode', () => {
 
 	it('is by default in list view', () => {
 		const context = { user }
-		createShare(context, 'shared')
+		createLinkShare(context, 'shared')
 			.then((url) => {
 				cy.logout()
 				cy.visit(url!)
@@ -34,7 +34,7 @@ describe('files_sharing: Public share - setting the default view mode', () => {
 
 	it('can be toggled by user', () => {
 		const context = { user }
-		createShare(context, 'shared')
+		createLinkShare(context, 'shared')
 			.then((url) => {
 				cy.logout()
 				cy.visit(url!)
@@ -67,7 +67,7 @@ describe('files_sharing: Public share - setting the default view mode', () => {
 
 	it('can be changed to default grid view', () => {
 		const context = { user }
-		createShare(context, 'shared')
+		createLinkShare(context, 'shared')
 			.then((url) => {
 				// Can set the "grid" view checkbox
 				cy.findByRole('list', { name: 'Link shares' })

@@ -3,18 +3,21 @@
  * SPDX-License-Identifier: AGPL-3.0-or-later
  */
 
-import type { FilesStore, RootsStore, RootOptions, Service, FilesState, FileSource } from '../types'
 import type { Folder, Node } from '@nextcloud/files'
+import type { FileSource, FilesState, FilesStore, RootOptions, RootsStore, Service } from '../types.ts'
 
-import { defineStore } from 'pinia'
 import { subscribe } from '@nextcloud/event-bus'
-import logger from '../logger'
+import { defineStore } from 'pinia'
 import Vue from 'vue'
-
+import logger from '../logger.ts'
 import { fetchNode } from '../services/WebdavClient.ts'
 import { usePathsStore } from './paths.ts'
 
-export const useFilesStore = function(...args) {
+/**
+ *
+ * @param args
+ */
+export function useFilesStore(...args) {
 	const store = defineStore('files', {
 		state: (): FilesState => ({
 			files: {} as FilesStore,
@@ -24,43 +27,47 @@ export const useFilesStore = function(...args) {
 		getters: {
 			/**
 			 * Get a file or folder by its source
+			 *
 			 * @param state
 			 */
-			getNode: (state) => (source: FileSource): Node|undefined => state.files[source],
+			getNode: (state) => (source: FileSource): Node | undefined => state.files[source],
 
 			/**
 			 * Get a list of files or folders by their IDs
 			 * Note: does not return undefined values
+			 *
 			 * @param state
 			 */
 			getNodes: (state) => (sources: FileSource[]): Node[] => sources
-				.map(source => state.files[source])
+				.map((source) => state.files[source])
 				.filter(Boolean),
 
 			/**
 			 * Get files or folders by their file ID
 			 * Multiple nodes can have the same file ID but different sources
 			 * (e.g. in a shared context)
+			 *
 			 * @param state
 			 */
-			getNodesById: (state) => (fileId: number): Node[] => Object.values(state.files).filter(node => node.fileid === fileId),
+			getNodesById: (state) => (fileId: number): Node[] => Object.values(state.files).filter((node) => node.fileid === fileId),
 
 			/**
 			 * Get the root folder of a service
+			 *
 			 * @param state
 			 */
-			getRoot: (state) => (service: Service): Folder|undefined => state.roots[service],
+			getRoot: (state) => (service: Service): Folder | undefined => state.roots[service],
 		},
 
 		actions: {
 			/**
-			 * Get cached child nodes within a given path
+			 * Get cached directory matching a given path
 			 *
-			 * @param service The service (files view)
-			 * @param path The path relative within the service
-			 * @return Array of cached nodes within the path
+			 * @param service - The service (files view)
+			 * @param path - The path relative within the service
+			 * @return The folder if found
 			 */
-			getNodesByPath(service: string, path?: string): Node[] {
+			getDirectoryByPath(service: string, path?: string): Folder | undefined {
 				const pathsStore = usePathsStore()
 				let folder: Folder | undefined
 
@@ -73,6 +80,19 @@ export const useFilesStore = function(...args) {
 						folder = this.getNode(source) as Folder | undefined
 					}
 				}
+
+				return folder
+			},
+
+			/**
+			 * Get cached child nodes within a given path
+			 *
+			 * @param service - The service (files view)
+			 * @param path - The path relative within the service
+			 * @return Array of cached nodes within the path
+			 */
+			getNodesByPath(service: string, path?: string): Node[] {
+				const folder = this.getDirectoryByPath(service, path)
 
 				// If we found a cache entry and the cache entry was already loaded (has children) then use it
 				return (folder?._children ?? [])
@@ -96,7 +116,7 @@ export const useFilesStore = function(...args) {
 			},
 
 			deleteNodes(nodes: Node[]) {
-				nodes.forEach(node => {
+				nodes.forEach((node) => {
 					if (node.source) {
 						Vue.delete(this.files, node.source)
 					}
@@ -135,19 +155,19 @@ export const useFilesStore = function(...args) {
 				// If we have multiple nodes with the same file ID, we need to update all of them
 				const nodes = this.getNodesById(node.fileid)
 				if (nodes.length > 1) {
-					await Promise.all(nodes.map(node => fetchNode(node.path))).then(this.updateNodes)
+					await Promise.all(nodes.map((node) => fetchNode(node.path))).then(this.updateNodes)
 					logger.debug(nodes.length + ' nodes updated in store', { fileid: node.fileid })
 					return
 				}
 
 				// If we have only one node with the file ID, we can update it directly
-				if (node.source === nodes[0].source) {
+				if (nodes.length === 1 && node.source === nodes[0].source) {
 					this.updateNodes([node])
 					return
 				}
 
 				// Otherwise, it means we receive an event for a node that is not in the store
-				fetchNode(node.path).then(n => this.updateNodes([n]))
+				fetchNode(node.path).then((n) => this.updateNodes([n]))
 			},
 
 			// Handlers for legacy sidebar (no real nodes support)

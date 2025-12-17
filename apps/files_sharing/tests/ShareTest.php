@@ -1,4 +1,5 @@
 <?php
+
 /**
  * SPDX-FileCopyrightText: 2016-2024 Nextcloud GmbH and Nextcloud contributors
  * SPDX-FileCopyrightText: 2016 ownCloud, Inc.
@@ -18,9 +19,8 @@ use OCP\Share\IShare;
 
 /**
  * Class ShareTest
- *
- * @group DB
  */
+#[\PHPUnit\Framework\Attributes\Group('DB')]
 class ShareTest extends TestCase {
 	public const TEST_FOLDER_NAME = '/folder_share_api_test';
 
@@ -188,8 +188,8 @@ class ShareTest extends TestCase {
 
 	/**
 	 * shared files should never have delete permissions
-	 * @dataProvider dataProviderTestFileSharePermissions
 	 */
+	#[\PHPUnit\Framework\Attributes\DataProvider('dataProviderTestFileSharePermissions')]
 	public function testFileSharePermissions($permission, $expectedvalid): void {
 		$pass = true;
 		try {
@@ -207,7 +207,7 @@ class ShareTest extends TestCase {
 		$this->assertEquals($expectedvalid, $pass);
 	}
 
-	public function dataProviderTestFileSharePermissions() {
+	public static function dataProviderTestFileSharePermissions() {
 		$permission1 = Constants::PERMISSION_ALL;
 		$permission3 = Constants::PERMISSION_READ;
 		$permission4 = Constants::PERMISSION_READ | Constants::PERMISSION_UPDATE;

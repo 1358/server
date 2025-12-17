@@ -10,14 +10,16 @@ namespace Tests\Core\Command\Config;
 
 use OC\Core\Command\App\Enable;
 use OC\Installer;
+use OCP\App\IAppManager;
+use OCP\IGroupManager;
+use OCP\Server;
 use Symfony\Component\Console\Tester\CommandTester;
 use Test\TestCase;
 
 /**
  * Class AppsEnableTest
- *
- * @group DB
  */
+#[\PHPUnit\Framework\Attributes\Group('DB')]
 class AppsEnableTest extends TestCase {
 	/** @var CommandTester */
 	private $commandTester;
@@ -26,24 +28,24 @@ class AppsEnableTest extends TestCase {
 		parent::setUp();
 
 		$command = new Enable(
-			\OC::$server->getAppManager(),
-			\OC::$server->getGroupManager(),
-			\OC::$server->get(Installer::class),
+			Server::get(IAppManager::class),
+			Server::get(IGroupManager::class),
+			Server::get(Installer::class),
 		);
 
 		$this->commandTester = new CommandTester($command);
 
-		\OC::$server->getAppManager()->disableApp('admin_audit');
-		\OC::$server->getAppManager()->disableApp('comments');
+		Server::get(IAppManager::class)->disableApp('admin_audit');
+		Server::get(IAppManager::class)->disableApp('comments');
 	}
 
 	/**
-	 * @dataProvider dataCommandInput
 	 * @param $appId
 	 * @param $groups
 	 * @param $statusCode
 	 * @param $pattern
 	 */
+	#[\PHPUnit\Framework\Attributes\DataProvider('dataCommandInput')]
 	public function testCommandInput($appId, $groups, $statusCode, $pattern): void {
 		$input = ['app-id' => $appId];
 

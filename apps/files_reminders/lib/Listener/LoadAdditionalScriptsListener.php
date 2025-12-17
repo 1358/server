@@ -30,10 +30,13 @@ class LoadAdditionalScriptsListener implements IEventListener {
 			return;
 		}
 
-		if (!$this->appManager->isEnabledForUser('notifications')) {
+		if (!$this->appManager->isEnabledForUser(Application::APP_ID)
+			|| !$this->appManager->isEnabledForUser('notifications')
+		) {
 			return;
 		}
 
+		Util::addStyle(Application::APP_ID, 'init');
 		Util::addInitScript(Application::APP_ID, 'init');
 	}
 }

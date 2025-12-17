@@ -1,4 +1,5 @@
 <?php
+
 /**
  * SPDX-FileCopyrightText: 2018 Nextcloud GmbH and Nextcloud contributors
  * SPDX-License-Identifier: AGPL-3.0-or-later
@@ -115,5 +116,9 @@ class Azure implements IObjectStore {
 
 	public function copyObject($from, $to) {
 		$this->getBlobClient()->copyBlob($this->containerName, $to, $this->containerName, $from);
+	}
+
+	public function preSignedUrl(string $urn, \DateTimeInterface $expiration): ?string {
+		return null;
 	}
 }

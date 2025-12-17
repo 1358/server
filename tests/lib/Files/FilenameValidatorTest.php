@@ -39,7 +39,6 @@ class FilenameValidatorTest extends TestCase {
 		$this->l10n = $this->createMock(IFactory::class);
 		$this->l10n
 			->method('get')
-			->with('core')
 			->willReturn($l10n);
 
 		$this->config = $this->createMock(IConfig::class);
@@ -48,9 +47,7 @@ class FilenameValidatorTest extends TestCase {
 		$this->database->method('supports4ByteText')->willReturn(true);
 	}
 
-	/**
-	 * @dataProvider dataValidateFilename
-	 */
+	#[\PHPUnit\Framework\Attributes\DataProvider('dataValidateFilename')]
 	public function testValidateFilename(
 		string $filename,
 		array $forbiddenNames,
@@ -87,9 +84,7 @@ class FilenameValidatorTest extends TestCase {
 		$validator->validateFilename($filename);
 	}
 
-	/**
-	 * @dataProvider dataValidateFilename
-	 */
+	#[\PHPUnit\Framework\Attributes\DataProvider('dataValidateFilename')]
 	public function testIsFilenameValid(
 		string $filename,
 		array $forbiddenNames,
@@ -189,9 +184,7 @@ class FilenameValidatorTest extends TestCase {
 		];
 	}
 
-	/**
-	 * @dataProvider data4ByteUnicode
-	 */
+	#[\PHPUnit\Framework\Attributes\DataProvider('data4ByteUnicode')]
 	public function testDatabaseDoesNotSupport4ByteText($filename): void {
 		$database = $this->createMock(IDBConnection::class);
 		$database->expects($this->once())
@@ -209,9 +202,7 @@ class FilenameValidatorTest extends TestCase {
 		];
 	}
 
-	/**
-	 * @dataProvider dataInvalidAsciiCharacters
-	 */
+	#[\PHPUnit\Framework\Attributes\DataProvider('dataInvalidAsciiCharacters')]
 	public function testInvalidAsciiCharactersAreAlwaysForbidden(string $filename): void {
 		$this->expectException(InvalidPathException::class);
 		$validator = new FilenameValidator($this->l10n, $this->database, $this->config, $this->logger);
@@ -255,9 +246,7 @@ class FilenameValidatorTest extends TestCase {
 		];
 	}
 
-	/**
-	 * @dataProvider dataIsForbidden
-	 */
+	#[\PHPUnit\Framework\Attributes\DataProvider('dataIsForbidden')]
 	public function testIsForbidden(string $filename, array $forbiddenNames, bool $expected): void {
 		/** @var FilenameValidator&MockObject */
 		$validator = $this->getMockBuilder(FilenameValidator::class)
@@ -291,9 +280,7 @@ class FilenameValidatorTest extends TestCase {
 		];
 	}
 
-	/**
-	 * @dataProvider dataGetForbiddenExtensions
-	 */
+	#[\PHPUnit\Framework\Attributes\DataProvider('dataGetForbiddenExtensions')]
 	public function testGetForbiddenExtensions(array $configValue, array $expectedValue): void {
 		$validator = new FilenameValidator($this->l10n, $this->database, $this->config, $this->logger);
 		$this->config
@@ -317,9 +304,7 @@ class FilenameValidatorTest extends TestCase {
 		];
 	}
 
-	/**
-	 * @dataProvider dataGetForbiddenFilenames
-	 */
+	#[\PHPUnit\Framework\Attributes\DataProvider('dataGetForbiddenFilenames')]
 	public function testGetForbiddenFilenames(array $configValue, array $legacyValue, array $expectedValue): void {
 		$validator = new FilenameValidator($this->l10n, $this->database, $this->config, $this->logger);
 		$this->config
@@ -349,9 +334,7 @@ class FilenameValidatorTest extends TestCase {
 		];
 	}
 
-	/**
-	 * @dataProvider dataGetForbiddenBasenames
-	 */
+	#[\PHPUnit\Framework\Attributes\DataProvider('dataGetForbiddenBasenames')]
 	public function testGetForbiddenBasenames(array $configValue, array $expectedValue): void {
 		$validator = new FilenameValidator($this->l10n, $this->database, $this->config, $this->logger);
 		$this->config
@@ -375,9 +358,7 @@ class FilenameValidatorTest extends TestCase {
 		];
 	}
 
-	/**
-	 * @dataProvider dataSanitizeFilename
-	 */
+	#[\PHPUnit\Framework\Attributes\DataProvider('dataSanitizeFilename')]
 	public function testSanitizeFilename(
 		string $filename,
 		array $forbiddenNames,
@@ -409,7 +390,7 @@ class FilenameValidatorTest extends TestCase {
 		$this->assertEquals($expected, $validator->sanitizeFilename($filename));
 	}
 
-	public function dataSanitizeFilename(): array {
+	public static function dataSanitizeFilename(): array {
 		return [
 			'valid name' => [
 				'a * b.txt', ['.htaccess'], [], [], [], 'a * b.txt'
@@ -438,7 +419,7 @@ class FilenameValidatorTest extends TestCase {
 				'.thumbs.db', ['.htaccess'], ['.thumbs'], [], [], '.thumbs (renamed).db'
 			],
 			'invalid character' => [
-				'a: b.txt', ['.htaccess'], [], [], [':'], 'a  b.txt',
+				'a: b.txt', ['.htaccess'], [], [], [':'], 'a_ b.txt',
 			],
 			'invalid extension' => [
 				'a: b.txt', ['.htaccess'], [], ['.txt'], [], 'a: b'
@@ -452,9 +433,7 @@ class FilenameValidatorTest extends TestCase {
 		];
 	}
 
-	/**
-	 * @dataProvider dataSanitizeFilenameCharacterReplacement
-	 */
+	#[\PHPUnit\Framework\Attributes\DataProvider('dataSanitizeFilenameCharacterReplacement')]
 	public function testSanitizeFilenameCharacterReplacement(
 		string $filename,
 		array $forbiddenCharacters,
@@ -492,13 +471,13 @@ class FilenameValidatorTest extends TestCase {
 	public static function dataSanitizeFilenameCharacterReplacement(): array {
 		return [
 			'default' => [
-				'foo*bar', ['*'], null, 'foo bar'
+				'foo*bar', ['*'], null, 'foo_bar'
 			],
-			'default - space not allowed' => [
-				'foo*bar', ['*', ' '], null, 'foo_bar'
+			'default - underscore not allowed' => [
+				'foo*bar', ['*', '_'], null, 'foo-bar'
 			],
-			'default - space and underscore not allowed' => [
-				'foo*bar', ['*', ' ', '_'], null, 'foo-bar'
+			'default - dash and underscore not allowed' => [
+				'foo*bar', ['*', '-', '_'], null, 'foo bar'
 			],
 			'default - no replacement' => [
 				'foo*bar', ['*', ' ', '_', '-'], null, null

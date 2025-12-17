@@ -1,4 +1,5 @@
 <?php
+
 /**
  * SPDX-FileCopyrightText: 2016 Nextcloud GmbH and Nextcloud contributors
  * SPDX-License-Identifier: AGPL-3.0-or-later
@@ -72,5 +73,9 @@ class StorageObjectStore implements IObjectStore {
 
 	public function copyObject($from, $to) {
 		$this->storage->copy($from, $to);
+	}
+
+	public function preSignedUrl(string $urn, \DateTimeInterface $expiration): ?string {
+		return null;
 	}
 }

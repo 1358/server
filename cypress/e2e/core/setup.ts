@@ -3,6 +3,8 @@
  * SPDX-License-Identifier: AGPL-3.0-or-later
  */
 
+import { randomString } from '../../support/utils/randomString.ts'
+
 /**
  * DO NOT RENAME THIS FILE to .cy.ts ⚠️
  * This is not following the pattern of the other files in this folder
@@ -104,14 +106,16 @@ describe('Can install Nextcloud', { testIsolation: true, retries: 0 }, () => {
 
 		sharedSetup()
 	})
-
 })
 
 /**
  * Shared admin setup function for the Nextcloud setup
  */
 function sharedSetup() {
-	const randAdmin = 'admin-' + Math.random().toString(36).substring(2, 15)
+	const randAdmin = 'admin-' + randomString(10)
+
+	// mock appstore
+	cy.intercept('**/settings/apps/list', { fixture: 'appstore/apps.json' })
 
 	// Fill in the form
 	cy.get('[data-cy-setup-form-field="adminlogin"]').type(randAdmin)
@@ -124,8 +128,19 @@ function sharedSetup() {
 	cy.location('pathname', { timeout: 10000 })
 		.should('include', '/core/apps/recommended')
 
+	// See the apps setup
+	cy.get('[data-cy-setup-recommended-apps]')
+		.should('be.visible')
+		.within(() => {
+			cy.findByRole('heading', { name: 'Recommended apps' })
+				.should('be.visible')
+			cy.findByRole('button', { name: 'Skip' })
+				.should('be.visible')
+			cy.findByRole('button', { name: 'Install recommended apps' })
+				.should('be.visible')
+		})
+
 	// Skip the setup apps
-	cy.get('[data-cy-setup-recommended-apps]').should('be.visible')
 	cy.get('[data-cy-setup-recommended-apps-skip]').click()
 
 	// Go to files

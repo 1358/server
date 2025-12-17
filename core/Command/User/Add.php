@@ -15,7 +15,7 @@ use OCP\IGroup;
 use OCP\IGroupManager;
 use OCP\IUser;
 use OCP\IUserManager;
-use OCP\Mail\IMailer;
+use OCP\Mail\IEmailValidator;
 use OCP\Security\Events\GenerateSecurePasswordEvent;
 use OCP\Security\ISecureRandom;
 use Symfony\Component\Console\Command\Command;
@@ -30,7 +30,7 @@ class Add extends Command {
 	public function __construct(
 		protected IUserManager $userManager,
 		protected IGroupManager $groupManager,
-		protected IMailer $mailer,
+		private IEmailValidator $emailValidator,
 		private IAppConfig $appConfig,
 		private NewUserMailHelper $mailHelper,
 		private IEventDispatcher $eventDispatcher,
@@ -52,7 +52,7 @@ class Add extends Command {
 				'password-from-env',
 				null,
 				InputOption::VALUE_NONE,
-				'read password from environment variable OC_PASS'
+				'read password from environment variable NC_PASS/OC_PASS'
 			)
 			->addOption(
 				'generate-password',
@@ -91,10 +91,10 @@ class Add extends Command {
 
 		// Setup password.
 		if ($input->getOption('password-from-env')) {
-			$password = getenv('OC_PASS');
+			$password = getenv('NC_PASS') ?: getenv('OC_PASS');
 
 			if (!$password) {
-				$output->writeln('<error>--password-from-env given, but OC_PASS is empty!</error>');
+				$output->writeln('<error>--password-from-env given, but NC_PASS/OC_PASS is empty!</error>');
 				return 1;
 			}
 		} elseif ($input->getOption('generate-password')) {
@@ -169,7 +169,7 @@ class Add extends Command {
 
 		$email = $input->getOption('email');
 		if (!empty($email)) {
-			if (!$this->mailer->validateMailAddress($email)) {
+			if (!$this->emailValidator->isValid($email)) {
 				$output->writeln(\sprintf(
 					'<error>The given email address "%s" is invalid. Email not set for the user.</error>',
 					$email,

@@ -1,4 +1,5 @@
 <?php
+
 /**
  * SPDX-FileCopyrightText: 2019-2024 Nextcloud GmbH and Nextcloud contributors
  * SPDX-FileCopyrightText: 2016 ownCloud, Inc.
@@ -7,10 +8,9 @@
 
 namespace Test\Share;
 
-/**
- * @group DB
- * Class Helper
- */
+use OC\Share\Helper;
+
+#[\PHPUnit\Framework\Attributes\Group('DB')]
 class HelperTest extends \Test\TestCase {
 	public static function expireDateProvider(): array {
 		return [
@@ -33,24 +33,22 @@ class HelperTest extends \Test\TestCase {
 		];
 	}
 
-	/**
-	 * @dataProvider expireDateProvider
-	 */
+	#[\PHPUnit\Framework\Attributes\DataProvider('expireDateProvider')]
 	public function testCalculateExpireDate($defaultExpireSettings, $creationTime, $userExpireDate, $expected): void {
-		$result = \OC\Share\Helper::calculateExpireDate($defaultExpireSettings, $creationTime, $userExpireDate);
+		$result = Helper::calculateExpireDate($defaultExpireSettings, $creationTime, $userExpireDate);
 		$this->assertSame($expected, $result);
 	}
 
 	/**
-	 * @dataProvider dataTestCompareServerAddresses
 	 *
 	 * @param string $server1
 	 * @param string $server2
 	 * @param bool $expected
 	 */
+	#[\PHPUnit\Framework\Attributes\DataProvider('dataTestCompareServerAddresses')]
 	public function testIsSameUserOnSameServer($user1, $server1, $user2, $server2, $expected): void {
 		$this->assertSame($expected,
-			\OC\Share\Helper::isSameUserOnSameServer($user1, $server1, $user2, $server2)
+			Helper::isSameUserOnSameServer($user1, $server1, $user2, $server2)
 		);
 	}
 

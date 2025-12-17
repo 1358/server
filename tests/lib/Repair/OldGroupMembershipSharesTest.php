@@ -1,4 +1,5 @@
 <?php
+
 /**
  * SPDX-FileCopyrightText: 2019-2024 Nextcloud GmbH and Nextcloud contributors
  * SPDX-FileCopyrightText: 2016 ownCloud, Inc.
@@ -11,16 +12,17 @@ use OC\Repair\OldGroupMembershipShares;
 use OCP\IDBConnection;
 use OCP\IGroupManager;
 use OCP\Migration\IOutput;
+use OCP\Server;
 use OCP\Share\IShare;
 use PHPUnit\Framework\MockObject\MockObject;
 
 /**
  * Class OldGroupMembershipSharesTest
  *
- * @group DB
  *
  * @package Test\Repair
  */
+#[\PHPUnit\Framework\Attributes\Group('DB')]
 class OldGroupMembershipSharesTest extends \Test\TestCase {
 
 	private IDBConnection $connection;
@@ -32,7 +34,7 @@ class OldGroupMembershipSharesTest extends \Test\TestCase {
 		$this->groupManager = $this->getMockBuilder(IGroupManager::class)
 			->disableOriginalConstructor()
 			->getMock();
-		$this->connection = \OCP\Server::get(IDBConnection::class);
+		$this->connection = Server::get(IDBConnection::class);
 
 		$this->deleteAllShares();
 	}
@@ -74,7 +76,7 @@ class OldGroupMembershipSharesTest extends \Test\TestCase {
 			->from('share')
 			->orderBy('id', 'ASC')
 			->executeQuery();
-		$rows = $result->fetchAll();
+		$rows = $result->fetchAllAssociative();
 		$this->assertEquals([['id' => $parent], ['id' => $group2], ['id' => $user1], ['id' => $member], ['id' => $notAMember]], $rows);
 		$result->closeCursor();
 
@@ -90,7 +92,7 @@ class OldGroupMembershipSharesTest extends \Test\TestCase {
 			->from('share')
 			->orderBy('id', 'ASC')
 			->executeQuery();
-		$rows = $result->fetchAll();
+		$rows = $result->fetchAllAssociative();
 		$this->assertEquals([['id' => $parent], ['id' => $group2], ['id' => $user1], ['id' => $member]], $rows);
 		$result->closeCursor();
 	}

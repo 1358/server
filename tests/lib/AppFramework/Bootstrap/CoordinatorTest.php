@@ -11,6 +11,7 @@ namespace lib\AppFramework\Bootstrap;
 
 use OC\AppFramework\Bootstrap\Coordinator;
 use OC\Support\CrashReport\Registry;
+use OCA\Settings\AppInfo\Application;
 use OCP\App\IAppManager;
 use OCP\AppFramework\App;
 use OCP\AppFramework\Bootstrap\IBootContext;
@@ -26,29 +27,14 @@ use Psr\Log\LoggerInterface;
 use Test\TestCase;
 
 class CoordinatorTest extends TestCase {
-	/** @var IAppManager|MockObject */
-	private $appManager;
-
-	/** @var IServerContainer|MockObject */
-	private $serverContainer;
-
-	/** @var Registry|MockObject */
-	private $crashReporterRegistry;
-
-	/** @var IManager|MockObject */
-	private $dashboardManager;
-
-	/** @var IEventDispatcher|MockObject */
-	private $eventDispatcher;
-
-	/** @var IEventLogger|MockObject */
-	private $eventLogger;
-
-	/** @var LoggerInterface|MockObject */
-	private $logger;
-
-	/** @var Coordinator */
-	private $coordinator;
+	private IAppManager&MockObject $appManager;
+	private IServerContainer&MockObject $serverContainer;
+	private Registry&MockObject $crashReporterRegistry;
+	private IManager&MockObject $dashboardManager;
+	private IEventDispatcher&MockObject $eventDispatcher;
+	private IEventLogger&MockObject $eventLogger;
+	private LoggerInterface&MockObject $logger;
+	private Coordinator $coordinator;
 
 	protected function setUp(): void {
 		parent::setUp();
@@ -76,7 +62,7 @@ class CoordinatorTest extends TestCase {
 		$appId = 'settings';
 		$this->serverContainer->expects($this->once())
 			->method('query')
-			->with(\OCA\Settings\AppInfo\Application::class)
+			->with(Application::class)
 			->willThrowException(new QueryException(''));
 		$this->logger->expects($this->once())
 			->method('error');
@@ -86,10 +72,10 @@ class CoordinatorTest extends TestCase {
 
 	public function testBootAppNotBootable(): void {
 		$appId = 'settings';
-		$mockApp = $this->createMock(\OCA\Settings\AppInfo\Application::class);
+		$mockApp = $this->createMock(Application::class);
 		$this->serverContainer->expects($this->once())
 			->method('query')
-			->with(\OCA\Settings\AppInfo\Application::class)
+			->with(Application::class)
 			->willReturn($mockApp);
 
 		$this->coordinator->bootApp($appId);
@@ -110,7 +96,7 @@ class CoordinatorTest extends TestCase {
 		};
 		$this->serverContainer->expects($this->once())
 			->method('query')
-			->with(\OCA\Settings\AppInfo\Application::class)
+			->with(Application::class)
 			->willReturn($mockApp);
 
 		$this->coordinator->bootApp($appId);

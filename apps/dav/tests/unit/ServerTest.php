@@ -14,15 +14,13 @@ use OCP\IRequest;
 /**
  * Class ServerTest
  *
- * @group DB
  *
  * @package OCA\DAV\Tests\Unit
  */
+#[\PHPUnit\Framework\Attributes\Group('DB')]
 class ServerTest extends \Test\TestCase {
 
-	/**
-	 * @dataProvider providesUris
-	 */
+	#[\PHPUnit\Framework\Attributes\DataProvider('providesUris')]
 	public function test(string $uri, array $plugins): void {
 		/** @var IRequest | \PHPUnit\Framework\MockObject\MockObject $r */
 		$r = $this->createMock(IRequest::class);

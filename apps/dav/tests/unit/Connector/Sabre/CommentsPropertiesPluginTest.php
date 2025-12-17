@@ -43,9 +43,7 @@ class CommentsPropertiesPluginTest extends \Test\TestCase {
 		];
 	}
 
-	/**
-	 * @dataProvider nodeProvider
-	 */
+	#[\PHPUnit\Framework\Attributes\DataProvider('nodeProvider')]
 	public function testHandleGetProperties(string $class, bool $expectedSuccessful): void {
 		$propFind = $this->createMock(PropFind::class);
 
@@ -69,9 +67,7 @@ class CommentsPropertiesPluginTest extends \Test\TestCase {
 		];
 	}
 
-	/**
-	 * @dataProvider baseUriProvider
-	 */
+	#[\PHPUnit\Framework\Attributes\DataProvider('baseUriProvider')]
 	public function testGetCommentsLink(string $baseUri, string $fid, ?string $expectedHref): void {
 		$node = $this->createMock(File::class);
 		$node->expects($this->any())
@@ -93,9 +89,7 @@ class CommentsPropertiesPluginTest extends \Test\TestCase {
 		];
 	}
 
-	/**
-	 * @dataProvider userProvider
-	 */
+	#[\PHPUnit\Framework\Attributes\DataProvider('userProvider')]
 	public function testGetUnreadCount(?string $user): void {
 		$node = $this->createMock(File::class);
 		$node->expects($this->any())
@@ -110,8 +104,8 @@ class CommentsPropertiesPluginTest extends \Test\TestCase {
 			->willReturn($user);
 
 		$this->commentsManager->expects($this->any())
-			->method('getNumberOfCommentsForObject')
-			->willReturn(42);
+			->method('getNumberOfUnreadCommentsForObjects')
+			->willReturn(['4567' => 42]);
 
 		$unread = $this->plugin->getUnreadCount($node);
 		if (is_null($user)) {

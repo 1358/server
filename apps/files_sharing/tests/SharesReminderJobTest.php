@@ -29,10 +29,10 @@ use Psr\Log\LoggerInterface;
 /**
  * Class SharesReminderJobTest
  *
- * @group DB
  *
  * @package OCA\Files_Sharing\Tests
  */
+#[\PHPUnit\Framework\Attributes\Group('DB')]
 class SharesReminderJobTest extends \Test\TestCase {
 	private SharesReminderJob $job;
 	private IDBConnection $db;
@@ -95,7 +95,7 @@ class SharesReminderJobTest extends \Test\TestCase {
 		parent::tearDown();
 	}
 
-	public function dataSharesReminder() {
+	public static function dataSharesReminder() {
 		$someMail = 'test@test.com';
 		$noExpirationDate = null;
 		$today = new \DateTime();
@@ -144,7 +144,6 @@ class SharesReminderJobTest extends \Test\TestCase {
 	}
 
 	/**
-	 * @dataProvider dataSharesReminder
 	 *
 	 * @param \DateTime|null $expirationDate Share expiration date
 	 * @param string $email Share with this email. If empty, the share is of type TYPE_USER and the sharee is user2
@@ -152,6 +151,7 @@ class SharesReminderJobTest extends \Test\TestCase {
 	 * @param int $permissions
 	 * @param bool $shouldBeReminded
 	 */
+	#[\PHPUnit\Framework\Attributes\DataProvider('dataSharesReminder')]
 	public function testSharesReminder(
 		?\DateTime $expirationDate, string $email, bool $isEmpty, int $permissions, bool $shouldBeReminded,
 	): void {

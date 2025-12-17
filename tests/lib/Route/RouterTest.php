@@ -21,10 +21,10 @@ use Test\TestCase;
 /**
  * Class RouterTest
  *
- * @group RoutingWeirdness
  *
  * @package Test\Route
  */
+#[\PHPUnit\Framework\Attributes\Group('RoutingWeirdness')]
 class RouterTest extends TestCase {
 	private Router $router;
 	private IAppManager&MockObject $appManager;
@@ -35,7 +35,7 @@ class RouterTest extends TestCase {
 		$logger = $this->createMock(LoggerInterface::class);
 		$logger->method('info')
 			->willReturnCallback(
-				function (string $message, array $data) {
+				function (string $message, array $data): void {
 					$this->fail('Unexpected info log: ' . (string)($data['exception'] ?? $message));
 				}
 			);

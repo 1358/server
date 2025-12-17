@@ -66,6 +66,15 @@ interface Folder extends Node {
 	public function get($path);
 
 	/**
+	 * Get or create new folder if the folder does not already exist.
+	 *
+	 * @param string $path relative path of the file or folder
+	 * @throw \OCP\Files\NotPermittedException
+	 * @since 33.0.0
+	 */
+	public function getOrCreateFolder(string $path, int $maxRetries = 5): Folder;
+
+	/**
 	 * Check if a file or folder exists in the folder
 	 *
 	 * @param string $path relative path of the file or folder
@@ -185,12 +194,12 @@ interface Folder extends Node {
 	/**
 	 * Add a suffix to the name in case the file exists
 	 *
-	 * @param string $name
+	 * @param string $filename
 	 * @return string
 	 * @throws NotPermittedException
 	 * @since 8.1.0
 	 */
-	public function getNonExistingName($name);
+	public function getNonExistingName($filename);
 
 	/**
 	 * @param int $limit
@@ -199,4 +208,15 @@ interface Folder extends Node {
 	 * @since 9.1.0
 	 */
 	public function getRecent($limit, $offset = 0);
+
+	/**
+	 * Verify if the given path is valid and allowed from this folder.
+	 *
+	 * @param string $path the path from this folder
+	 * @param string $fileName
+	 * @param bool $readonly Check only if the path is allowed for read-only access
+	 * @throws InvalidPathException
+	 * @since 32.0.0
+	 */
+	public function verifyPath($fileName, $readonly = false): void;
 }

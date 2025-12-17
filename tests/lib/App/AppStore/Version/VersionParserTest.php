@@ -1,4 +1,7 @@
 <?php
+
+declare(strict_types=1);
+
 /**
  * SPDX-FileCopyrightText: 2016 Nextcloud GmbH and Nextcloud contributors
  * SPDX-License-Identifier: AGPL-3.0-or-later
@@ -11,8 +14,7 @@ use OC\App\AppStore\Version\VersionParser;
 use Test\TestCase;
 
 class VersionParserTest extends TestCase {
-	/** @var VersionParser */
-	private $versionParser;
+	private VersionParser $versionParser;
 
 	protected function setUp(): void {
 		parent::setUp();
@@ -56,11 +58,11 @@ class VersionParserTest extends TestCase {
 	}
 
 	/**
-	 * @dataProvider versionProvider
 	 *
 	 * @param string $input
 	 * @param Version $expected
 	 */
+	#[\PHPUnit\Framework\Attributes\DataProvider('versionProvider')]
 	public function testGetVersion($input,
 		Version $expected): void {
 		$this->assertEquals($expected, $this->versionParser->getVersion($input));

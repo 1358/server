@@ -1,4 +1,5 @@
 <?php
+
 /**
  * SPDX-FileCopyrightText: 2016-2024 Nextcloud GmbH and Nextcloud contributors
  * SPDX-FileCopyrightText: 2016 ownCloud, Inc.
@@ -8,24 +9,26 @@
 namespace Test;
 
 use OC\App\AppStore\Fetcher\AppFetcher;
+use OC\Config;
+use OC\Server;
 use OCP\Comments\ICommentsManager;
 
 /**
  * Class Server
  *
- * @group DB
  *
  * @package Test
  */
+#[\PHPUnit\Framework\Attributes\Group('DB')]
 class ServerTest extends \Test\TestCase {
-	/** @var \OC\Server */
+	/** @var Server */
 	protected $server;
 
 
 	protected function setUp(): void {
 		parent::setUp();
-		$config = new \OC\Config(\OC::$configDir);
-		$this->server = new \OC\Server('', $config);
+		$config = new Config(\OC::$configDir);
+		$this->server = new Server('', $config);
 	}
 
 	public static function dataTestQuery(): array {
@@ -41,11 +44,11 @@ class ServerTest extends \Test\TestCase {
 	}
 
 	/**
-	 * @dataProvider dataTestQuery
 	 *
 	 * @param string $serviceName
 	 * @param string $instanceOf
 	 */
+	#[\PHPUnit\Framework\Attributes\DataProvider('dataTestQuery')]
 	public function testQuery($serviceName, $instanceOf): void {
 		$this->assertInstanceOf($instanceOf, $this->server->query($serviceName), 'Service "' . $serviceName . '"" did not return the right class');
 	}

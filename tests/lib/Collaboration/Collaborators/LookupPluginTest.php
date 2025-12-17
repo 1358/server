@@ -1,4 +1,5 @@
 <?php
+
 /**
  * SPDX-FileCopyrightText: 2017 Nextcloud GmbH and Nextcloud contributors
  * SPDX-License-Identifier: AGPL-3.0-or-later
@@ -56,6 +57,10 @@ class LookupPluginTest extends TestCase {
 				if ($cloudId === 'user@myNextcloud.net') {
 					return new CloudId('user@myNextcloud.net', 'user', 'myNextcloud.net');
 				}
+				if (str_contains($cloudId, '@enceladus.moon')) {
+					[$user, $remote] = explode('@', $cloudId, 2);
+					return new CloudId($cloudId, $user, $remote);
+				}
 				return new CloudId('user@someNextcloud.net', 'user', 'someNextcloud.net');
 			});
 
@@ -65,7 +70,8 @@ class LookupPluginTest extends TestCase {
 			$this->clientService,
 			$this->userSession,
 			$this->cloudIdManager,
-			$this->logger
+			$this->logger,
+			null
 		);
 	}
 
@@ -117,9 +123,9 @@ class LookupPluginTest extends TestCase {
 	}
 
 	/**
-	 * @dataProvider searchDataProvider
 	 * @param array $searchParams
 	 */
+	#[\PHPUnit\Framework\Attributes\DataProvider('searchDataProvider')]
 	public function testSearch(array $searchParams): void {
 		$type = new SearchResultType('lookup');
 
@@ -175,11 +181,11 @@ class LookupPluginTest extends TestCase {
 
 
 	/**
-	 * @dataProvider dataSearchEnableDisableLookupServer
 	 * @param array $searchParams
 	 * @param bool $GSEnabled
 	 * @param bool $LookupEnabled
 	 */
+	#[\PHPUnit\Framework\Attributes\DataProvider('dataSearchEnableDisableLookupServer')]
 	public function testSearchEnableDisableLookupServer(array $searchParams, $GSEnabled, $LookupEnabled): void {
 		$type = new SearchResultType('lookup');
 
@@ -285,7 +291,9 @@ class LookupPluginTest extends TestCase {
 						'value' => [
 							'shareType' => IShare::TYPE_REMOTE,
 							'globalScale' => true,
-							'shareWith' => $fedIDs[0]
+							'shareWith' => $fedIDs[0],
+							'server' => 'enceladus.moon',
+							'isTrustedServer' => false,
 						],
 						'extra' => ['federationId' => $fedIDs[0]],
 					],
@@ -294,7 +302,9 @@ class LookupPluginTest extends TestCase {
 						'value' => [
 							'shareType' => IShare::TYPE_REMOTE,
 							'globalScale' => true,
-							'shareWith' => $fedIDs[1]
+							'shareWith' => $fedIDs[1],
+							'server' => 'enceladus.moon',
+							'isTrustedServer' => false,
 						],
 						'extra' => ['federationId' => $fedIDs[1]],
 					],
@@ -303,7 +313,9 @@ class LookupPluginTest extends TestCase {
 						'value' => [
 							'shareType' => IShare::TYPE_REMOTE,
 							'globalScale' => true,
-							'shareWith' => $fedIDs[2]
+							'shareWith' => $fedIDs[2],
+							'server' => 'enceladus.moon',
+							'isTrustedServer' => false,
 						],
 						'extra' => ['federationId' => $fedIDs[2]],
 					],
@@ -327,7 +339,9 @@ class LookupPluginTest extends TestCase {
 						'value' => [
 							'shareType' => IShare::TYPE_REMOTE,
 							'globalScale' => true,
-							'shareWith' => $fedIDs[0]
+							'shareWith' => $fedIDs[0],
+							'server' => 'enceladus.moon',
+							'isTrustedServer' => false,
 						],
 						'extra' => ['federationId' => $fedIDs[0]],
 					],
@@ -336,7 +350,9 @@ class LookupPluginTest extends TestCase {
 						'value' => [
 							'shareType' => IShare::TYPE_REMOTE,
 							'globalScale' => true,
-							'shareWith' => $fedIDs[1]
+							'shareWith' => $fedIDs[1],
+							'server' => 'enceladus.moon',
+							'isTrustedServer' => false,
 						],
 						'extra' => ['federationId' => $fedIDs[1]],
 					],
@@ -345,7 +361,9 @@ class LookupPluginTest extends TestCase {
 						'value' => [
 							'shareType' => IShare::TYPE_REMOTE,
 							'globalScale' => true,
-							'shareWith' => $fedIDs[2]
+							'shareWith' => $fedIDs[2],
+							'server' => 'enceladus.moon',
+							'isTrustedServer' => false,
 						],
 						'extra' => ['federationId' => $fedIDs[2]],
 					],
@@ -459,7 +477,9 @@ class LookupPluginTest extends TestCase {
 						'value' => [
 							'shareType' => IShare::TYPE_REMOTE,
 							'globalScale' => true,
-							'shareWith' => $fedIDs[0]
+							'shareWith' => $fedIDs[0],
+							'server' => 'enceladus.moon',
+							'isTrustedServer' => false,
 						],
 						'extra' => ['federationId' => $fedIDs[0]],
 					],
@@ -468,7 +488,9 @@ class LookupPluginTest extends TestCase {
 						'value' => [
 							'shareType' => IShare::TYPE_REMOTE,
 							'globalScale' => true,
-							'shareWith' => $fedIDs[1]
+							'shareWith' => $fedIDs[1],
+							'server' => 'enceladus.moon',
+							'isTrustedServer' => false,
 						],
 						'extra' => ['federationId' => $fedIDs[1]],
 					],
@@ -477,7 +499,9 @@ class LookupPluginTest extends TestCase {
 						'value' => [
 							'shareType' => IShare::TYPE_REMOTE,
 							'globalScale' => true,
-							'shareWith' => $fedIDs[2]
+							'shareWith' => $fedIDs[2],
+							'server' => 'enceladus.moon',
+							'isTrustedServer' => false,
 						],
 						'extra' => ['federationId' => $fedIDs[2]],
 					],

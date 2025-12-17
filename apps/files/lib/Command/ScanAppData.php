@@ -1,4 +1,5 @@
 <?php
+
 /**
  * SPDX-FileCopyrightText: 2016 Nextcloud GmbH and Nextcloud contributors
  * SPDX-License-Identifier: AGPL-3.0-or-later
@@ -11,6 +12,7 @@ use OC\DB\Connection;
 use OC\DB\ConnectionAdapter;
 use OC\Files\Utils\Scanner;
 use OC\ForbiddenException;
+use OC\Preview\Storage\StorageFactory;
 use OCP\EventDispatcher\IEventDispatcher;
 use OCP\Files\Folder;
 use OCP\Files\IRootFolder;
@@ -31,10 +33,12 @@ class ScanAppData extends Base {
 	protected int $foldersCounter = 0;
 
 	protected int $filesCounter = 0;
+	protected int $previewsCounter = -1;
 
 	public function __construct(
 		protected IRootFolder $rootFolder,
 		protected IConfig $config,
+		private StorageFactory $previewStorage,
 	) {
 		parent::__construct();
 	}
@@ -50,6 +54,14 @@ class ScanAppData extends Base {
 	}
 
 	protected function scanFiles(OutputInterface $output, string $folder): int {
+		if ($folder === 'preview' || $folder === '') {
+			$this->previewsCounter = $this->previewStorage->scan();
+
+			if ($folder === 'preview') {
+				return self::SUCCESS;
+			}
+		}
+
 		try {
 			/** @var Folder $appData */
 			$appData = $this->getAppDataFolder();
@@ -133,7 +145,7 @@ class ScanAppData extends Base {
 		$this->initTools();
 
 		$exitCode = $this->scanFiles($output, $folder);
-		if ($exitCode === 0) {
+		if ($exitCode === self::SUCCESS) {
 			$this->presentStats($output);
 		}
 		return $exitCode;
@@ -161,7 +173,7 @@ class ScanAppData extends Base {
 	 *
 	 * @throws \ErrorException
 	 */
-	public function exceptionErrorHandler($severity, $message, $file, $line) {
+	public function exceptionErrorHandler(int $severity, string $message, string $file, int $line): void {
 		if (!(error_reporting() & $severity)) {
 			// This error code is not included in error_reporting
 			return;
@@ -172,10 +184,12 @@ class ScanAppData extends Base {
 	protected function presentStats(OutputInterface $output): void {
 		// Stop the timer
 		$this->execTime += microtime(true);
-
-		$headers = [
-			'Folders', 'Files', 'Elapsed time'
-		];
+		if ($this->previewsCounter !== -1) {
+			$headers[] = 'Previews';
+		}
+		$headers[] = 'Folders';
+		$headers[] = 'Files';
+		$headers[] = 'Elapsed time';
 
 		$this->showSummary($headers, null, $output);
 	}
@@ -186,14 +200,15 @@ class ScanAppData extends Base {
 	 * @param string[] $headers
 	 * @param string[] $rows
 	 */
-	protected function showSummary($headers, $rows, OutputInterface $output): void {
+	protected function showSummary(array $headers, ?array $rows, OutputInterface $output): void {
 		$niceDate = $this->formatExecTime();
 		if (!$rows) {
-			$rows = [
-				$this->foldersCounter,
-				$this->filesCounter,
-				$niceDate,
-			];
+			if ($this->previewsCounter !== -1) {
+				$rows[] = $this->previewsCounter;
+			}
+			$rows[] = $this->foldersCounter;
+			$rows[] = $this->filesCounter;
+			$rows[] = $niceDate;
 		}
 		$table = new Table($output);
 		$table

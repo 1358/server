@@ -14,8 +14,7 @@ use OC\App\CompareVersion;
 use Test\TestCase;
 
 class CompareVersionTest extends TestCase {
-	/** @var CompareVersion */
-	private $compare;
+	private CompareVersion $compare;
 
 	protected function setUp(): void {
 		parent::setUp();
@@ -54,9 +53,7 @@ class CompareVersionTest extends TestCase {
 		];
 	}
 
-	/**
-	 * @dataProvider comparisonData
-	 */
+	#[\PHPUnit\Framework\Attributes\DataProvider('comparisonData')]
 	public function testComparison(string $actualVersion, string $requiredVersion,
 		string $comparator, bool $expected): void {
 		$isCompatible = $this->compare->isCompatible($actualVersion, $requiredVersion,

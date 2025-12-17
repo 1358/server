@@ -6,7 +6,7 @@
  * SPDX-License-Identifier: AGPL-3.0-only
  */
 use OC\Authentication\Token\IProvider;
-use OC\User\LoginException;
+use OC\User\DisabledUserException;
 use OCP\Authentication\Exceptions\InvalidTokenException;
 use OCP\Authentication\Exceptions\WipeTokenException;
 use OCP\Authentication\Token\IToken;
@@ -59,7 +59,7 @@ class OC_User {
 			Server::get(IUserManager::class)->registerBackend($backend);
 		} else {
 			// You'll never know what happens
-			if ($backend === null or !is_string($backend)) {
+			if ($backend === null || !is_string($backend)) {
 				$backend = 'database';
 			}
 
@@ -151,7 +151,7 @@ class OC_User {
 
 				if ($userSession->getUser() && !$userSession->getUser()->isEnabled()) {
 					$message = \OC::$server->getL10N('lib')->t('Account disabled');
-					throw new LoginException($message);
+					throw new DisabledUserException($message);
 				}
 				$userSession->setLoginName($uid);
 				$request = OC::$server->getRequest();
@@ -251,16 +251,6 @@ class OC_User {
 	}
 
 	/**
-	 * Check if the user is logged in, considers also the HTTP basic credentials
-	 *
-	 * @deprecated 12.0.0 use \OC::$server->getUserSession()->isLoggedIn()
-	 * @return bool
-	 */
-	public static function isLoggedIn() {
-		return \OC::$server->getUserSession()->isLoggedIn();
-	}
-
-	/**
 	 * set incognito mode, e.g. if a user wants to open a public link
 	 *
 	 * @param bool $status
@@ -348,42 +338,6 @@ class OC_User {
 		} else {
 			return false;
 		}
-	}
-
-	/**
-	 * @param string $uid The username
-	 * @return string
-	 *
-	 * returns the path to the users home directory
-	 * @deprecated 12.0.0 Use \OC::$server->getUserManager->getHome()
-	 */
-	public static function getHome($uid) {
-		$user = Server::get(IUserManager::class)->get($uid);
-		if ($user) {
-			return $user->getHome();
-		} else {
-			return \OC::$server->getSystemConfig()->getValue('datadirectory', OC::$SERVERROOT . '/data') . '/' . $uid;
-		}
-	}
-
-	/**
-	 * Get a list of all users display name
-	 *
-	 * @param string $search
-	 * @param int $limit
-	 * @param int $offset
-	 * @return array associative array with all display names (value) and corresponding uids (key)
-	 *
-	 * Get a list of all display names and user ids.
-	 * @deprecated 12.0.0 Use \OC::$server->getUserManager->searchDisplayName($search, $limit, $offset) instead.
-	 */
-	public static function getDisplayNames($search = '', $limit = null, $offset = null) {
-		$displayNames = [];
-		$users = Server::get(IUserManager::class)->searchDisplayName($search, $limit, $offset);
-		foreach ($users as $user) {
-			$displayNames[$user->getUID()] = $user->getDisplayName();
-		}
-		return $displayNames;
 	}
 
 	/**

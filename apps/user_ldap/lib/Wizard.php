@@ -199,7 +199,7 @@ class Wizard extends LDAPUtility {
 			$count = (int)$this->countUsersWithAttribute($attr, true);
 			if ($count > 0) {
 				//no change, but we sent it back to make sure the user interface
-				//is still correct, even if the ajax call was cancelled meanwhile
+				//is still correct, even if the call was cancelled meanwhile
 				$this->result->addChange('ldap_display_name', $attr);
 				return $this->result;
 			}
@@ -260,8 +260,8 @@ class Wizard extends LDAPUtility {
 			$this->applyFind('ldap_email_attr', $winner);
 			if ($writeLog) {
 				$this->logger->info(
-					'The mail attribute has automatically been reset, ' .
-					'because the original value did not return any results.',
+					'The mail attribute has automatically been reset, '
+					. 'because the original value did not return any results.',
 					['app' => 'user_ldap']
 				);
 			}
@@ -1209,8 +1209,8 @@ class Wizard extends LDAPUtility {
 		//When looking for objectclasses, testing few entries is sufficient,
 		$dig = 3;
 
-		$availableFeatures =
-			$this->cumulativeSearchOnAttribute($objectclasses, $attr,
+		$availableFeatures
+			= $this->cumulativeSearchOnAttribute($objectclasses, $attr,
 				$dig, $maxEntryObjC);
 		if (is_array($availableFeatures)
 		   && count($availableFeatures) > 0) {

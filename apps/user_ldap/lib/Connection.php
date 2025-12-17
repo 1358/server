@@ -11,8 +11,6 @@ use OC\ServerNotAvailableException;
 use OCA\User_LDAP\Exceptions\ConfigurationIssueException;
 use OCP\ICache;
 use OCP\ICacheFactory;
-use OCP\IConfig;
-use OCP\IDBConnection;
 use OCP\IL10N;
 use OCP\Server;
 use OCP\Util;
@@ -156,7 +154,7 @@ class Connection extends LDAPUtility {
 		if ($memcache->isAvailable()) {
 			$this->cache = $memcache->createDistributed();
 		}
-		$helper = new Helper(Server::get(IConfig::class), Server::get(IDBConnection::class));
+		$helper = Server::get(Helper::class);
 		$this->doNotValidate = !in_array($this->configPrefix,
 			$helper->getServerConfigurationPrefixes());
 		$this->logger = Server::get(LoggerInterface::class);
@@ -522,20 +520,6 @@ class Connection extends LDAPUtility {
 			);
 		}
 
-		if (!empty($baseUsers) && !$this->checkBasesAreValid($baseUsers, $base)) {
-			throw new ConfigurationIssueException(
-				'User base is not in root base',
-				$this->l10n->t('User base DN is not a subnode of global base DN'),
-			);
-		}
-
-		if (!empty($baseGroups) && !$this->checkBasesAreValid($baseGroups, $base)) {
-			throw new ConfigurationIssueException(
-				'Group base is not in root base',
-				$this->l10n->t('Group base DN is not a subnode of global base DN'),
-			);
-		}
-
 		if (mb_strpos((string)$this->configuration->ldapLoginFilter, '%uid', 0, 'UTF-8') === false) {
 			throw new ConfigurationIssueException(
 				'Login filter does not contain %uid placeholder.',
@@ -663,8 +647,8 @@ class Connection extends LDAPUtility {
 			$this->doConnect($this->configuration->ldapBackupHost ?? '', $this->configuration->ldapBackupPort ?? '');
 			$this->bindResult = [];
 			$bindStatus = $this->bind();
-			$error = $this->ldap->isResource($this->ldapConnectionRes) ?
-				$this->ldap->errno($this->ldapConnectionRes) : -1;
+			$error = $this->ldap->isResource($this->ldapConnectionRes)
+				? $this->ldap->errno($this->ldapConnectionRes) : -1;
 			if ($bindStatus && $error === 0 && !$forceBackupHost) {
 				//when bind to backup server succeeded and failed to main server,
 				//skip contacting it for 15min
@@ -686,6 +670,22 @@ class Connection extends LDAPUtility {
 			return false;
 		}
 
+		if ($this->configuration->turnOffCertCheck) {
+			if ($this->ldap->setOption(null, LDAP_OPT_X_TLS_REQUIRE_CERT, LDAP_OPT_X_TLS_NEVER)) {
+				$this->logger->debug(
+					'Turned off SSL certificate validation successfully.',
+					['app' => 'user_ldap']
+				);
+			} else {
+				$this->logger->warning(
+					'Could not turn off SSL certificate validation.',
+					['app' => 'user_ldap']
+				);
+			}
+		} else {
+			$this->ldap->setOption(null, LDAP_OPT_X_TLS_REQUIRE_CERT, LDAP_OPT_X_TLS_DEMAND);
+		}
+
 		$this->ldapConnectionRes = $this->ldap->connect($host, $port) ?: null;
 
 		if ($this->ldapConnectionRes === null) {
@@ -705,20 +705,6 @@ class Connection extends LDAPUtility {
 		}
 
 		if ($this->configuration->ldapTLS) {
-			if ($this->configuration->turnOffCertCheck) {
-				if ($this->ldap->setOption($this->ldapConnectionRes, LDAP_OPT_X_TLS_REQUIRE_CERT, LDAP_OPT_X_TLS_NEVER)) {
-					$this->logger->debug(
-						'Turned off SSL certificate validation successfully.',
-						['app' => 'user_ldap']
-					);
-				} else {
-					$this->logger->warning(
-						'Could not turn off SSL certificate validation.',
-						['app' => 'user_ldap']
-					);
-				}
-			}
-
 			if (!$this->ldap->startTls($this->ldapConnectionRes)) {
 				throw new ServerNotAvailableException('Start TLS failed, when connecting to LDAP host ' . $host . '.');
 			}

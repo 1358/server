@@ -11,6 +11,7 @@ use Icewind\Streams\CallbackWrapper;
 use OC\Files\Mount\MoveableMount;
 use OC\Files\Storage\Storage;
 use OC\Files\Storage\Wrapper\Quota;
+use OC\Files\Utils\PathHelper;
 use OC\Share\Share;
 use OC\User\LazyUser;
 use OC\User\Manager as UserManager;
@@ -55,6 +56,8 @@ use Psr\Log\LoggerInterface;
  *
  * Filesystem functions are not called directly; they are passed to the correct
  * \OC\Files\Storage\Storage object
+ *
+ * @internal Since 33.0.0. use IRootFolder and the Folder/File/Node API instead in new code.
  */
 class View {
 	private string $fakeRoot = '';
@@ -90,13 +93,7 @@ class View {
 			return null;
 		}
 		$this->assertPathLength($path);
-		if ($path === '') {
-			$path = '/';
-		}
-		if ($path[0] !== '/') {
-			$path = '/' . $path;
-		}
-		return $this->fakeRoot . $path;
+		return PathHelper::normalizePath($this->fakeRoot . '/' . $path);
 	}
 
 	/**
@@ -938,7 +935,7 @@ class View {
 
 			try {
 				$exists = $this->file_exists($target);
-				if ($this->shouldEmitHooks()) {
+				if ($this->shouldEmitHooks($target)) {
 					\OC_Hook::emit(
 						Filesystem::CLASSNAME,
 						Filesystem::signal_copy,
@@ -978,7 +975,7 @@ class View {
 					$this->changeLock($target, ILockingProvider::LOCK_SHARED);
 					$lockTypePath2 = ILockingProvider::LOCK_SHARED;
 
-					if ($this->shouldEmitHooks() && $result !== false) {
+					if ($this->shouldEmitHooks($target) && $result !== false) {
 						\OC_Hook::emit(
 							Filesystem::CLASSNAME,
 							Filesystem::signal_post_copy,
@@ -1828,43 +1825,25 @@ class View {
 	 * @return string
 	 * @throws NotFoundException
 	 */
-	public function getPath($id, ?int $storageId = null) {
+	public function getPath($id, ?int $storageId = null): string {
 		$id = (int)$id;
-		$manager = Filesystem::getMountManager();
-		$mounts = $manager->findIn($this->fakeRoot);
-		$mounts[] = $manager->find($this->fakeRoot);
-		$mounts = array_filter($mounts);
-		// reverse the array, so we start with the storage this view is in
-		// which is the most likely to contain the file we're looking for
-		$mounts = array_reverse($mounts);
+		$rootFolder = Server::get(Files\IRootFolder::class);
 
-		// put non-shared mounts in front of the shared mount
-		// this prevents unneeded recursion into shares
-		usort($mounts, function (IMountPoint $a, IMountPoint $b) {
-			return $a instanceof SharedMount && (!$b instanceof SharedMount) ? 1 : -1;
-		});
-
-		if (!is_null($storageId)) {
-			$mounts = array_filter($mounts, function (IMountPoint $mount) use ($storageId) {
-				return $mount->getNumericStorageId() === $storageId;
-			});
+		$node = $rootFolder->getFirstNodeByIdInPath($id, $this->getRoot());
+		if ($node) {
+			if ($storageId === null || $storageId === $node->getStorage()->getCache()->getNumericStorageId()) {
+				return $this->getRelativePath($node->getPath()) ?? '';
+			}
+		} else {
+			throw new NotFoundException(sprintf('File with id "%s" has not been found.', $id));
 		}
 
-		foreach ($mounts as $mount) {
-			/**
-			 * @var \OC\Files\Mount\MountPoint $mount
-			 */
-			if ($mount->getStorage()) {
-				$cache = $mount->getStorage()->getCache();
-				$internalPath = $cache->getPathById($id);
-				if (is_string($internalPath)) {
-					$fullPath = $mount->getMountPoint() . $internalPath;
-					if (!is_null($path = $this->getRelativePath($fullPath))) {
-						return $path;
-					}
-				}
+		foreach ($rootFolder->getByIdInPath($id, $this->getRoot()) as $node) {
+			if ($storageId === $node->getStorage()->getCache()->getNumericStorageId()) {
+				return $this->getRelativePath($node->getPath()) ?? '';
 			}
 		}
+
 		throw new NotFoundException(sprintf('File with id "%s" has not been found.', $id));
 	}
 
@@ -1904,7 +1883,15 @@ class View {
 		}, $providers));
 
 		foreach ($shares as $share) {
-			$sharedPath = $share->getNode()->getPath();
+			try {
+				$sharedPath = $share->getNode()->getPath();
+			} catch (NotFoundException $e) {
+				// node is not found, ignoring
+				$this->logger->debug(
+					'Could not find the node linked to a share',
+					['app' => 'files', 'exception' => $e]);
+				continue;
+			}
 			if ($targetPath === $sharedPath || str_starts_with($targetPath, $sharedPath . '/')) {
 				$this->logger->debug(
 					'It is not allowed to move one mount point into a shared folder',

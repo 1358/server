@@ -18,6 +18,7 @@ use OCP\Http\Client\LocalServerException;
 use OCP\ICertificateManager;
 use OCP\IConfig;
 use OCP\Security\IRemoteHostValidator;
+use OCP\ServerVersion;
 use Psr\Log\LoggerInterface;
 use function parse_url;
 
@@ -41,6 +42,7 @@ class Client implements IClient {
 		GuzzleClient $client,
 		IRemoteHostValidator $remoteHostValidator,
 		protected LoggerInterface $logger,
+		protected ServerVersion $serverVersion,
 	) {
 		$this->config = $config;
 		$this->client = $client;
@@ -81,7 +83,8 @@ class Client implements IClient {
 		$options = array_merge($defaults, $options);
 
 		if (!isset($options[RequestOptions::HEADERS]['User-Agent'])) {
-			$options[RequestOptions::HEADERS]['User-Agent'] = 'Nextcloud Server Crawler';
+			$userAgent = 'Nextcloud-Server-Crawler/' . $this->serverVersion->getVersionString();
+			$options[RequestOptions::HEADERS]['User-Agent'] = $userAgent;
 		}
 
 		if (!isset($options[RequestOptions::HEADERS]['Accept-Encoding'])) {
@@ -102,7 +105,7 @@ class Client implements IClient {
 		// $this->certificateManager->getAbsoluteBundlePath() tries to instantiate
 		// a view
 		if (!$this->config->getSystemValueBool('installed', false)) {
-			return \OC::$SERVERROOT . '/resources/config/ca-bundle.crt';
+			return $this->certificateManager->getDefaultCertificatesBundlePath();
 		}
 
 		return $this->certificateManager->getAbsoluteBundlePath();
@@ -149,8 +152,8 @@ class Client implements IClient {
 	}
 
 	private function isLocalAddressAllowed(array $options) : bool {
-		if (($options['nextcloud']['allow_local_address'] ?? false) ||
-			$this->config->getSystemValueBool('allow_local_remote_servers', false)) {
+		if (($options['nextcloud']['allow_local_address'] ?? false)
+			|| $this->config->getSystemValueBool('allow_local_remote_servers', false)) {
 			return true;
 		}
 

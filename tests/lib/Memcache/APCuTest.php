@@ -8,19 +8,19 @@
 
 namespace Test\Memcache;
 
-/**
- * @group Memcache
- * @group APCu
- */
+use OC\Memcache\APCu;
+
+#[\PHPUnit\Framework\Attributes\Group('Memcache')]
+#[\PHPUnit\Framework\Attributes\Group('APCu')]
 class APCuTest extends Cache {
 	protected function setUp(): void {
 		parent::setUp();
 
-		if (!\OC\Memcache\APCu::isAvailable()) {
+		if (!APCu::isAvailable()) {
 			$this->markTestSkipped('The APCu extension is not available.');
 			return;
 		}
-		$this->instance = new \OC\Memcache\APCu($this->getUniqueID());
+		$this->instance = new APCu($this->getUniqueID());
 	}
 
 	public function testCasIntChanged(): void {

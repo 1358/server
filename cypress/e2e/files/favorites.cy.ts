@@ -3,8 +3,9 @@
  * SPDX-License-Identifier: AGPL-3.0-or-later
  */
 
-import type { User } from '@nextcloud/cypress'
-import { getActionButtonForFile, getRowForFile, triggerActionForFile } from './FilesUtils'
+import type { User } from '@nextcloud/e2e-test-server/cypress'
+
+import { getActionButtonForFile, getRowForFile, triggerActionForFile } from './FilesUtils.ts'
 
 describe('files: Favorites', { testIsolation: true }, () => {
 	let user: User
@@ -30,7 +31,7 @@ describe('files: Favorites', { testIsolation: true }, () => {
 		// See action is called 'Add to favorites'
 		cy.get('[data-cy-files-list-row-action="favorite"] > button').last()
 			.should('exist')
-			.and('have.text', 'Add to favorites')
+			.and('contain.text', 'Add to favorites')
 			.click({ force: true })
 		cy.wait('@addToFavorites')
 		// See favorites star

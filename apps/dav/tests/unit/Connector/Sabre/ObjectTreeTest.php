@@ -23,10 +23,10 @@ use OCP\Files\Mount\IMountManager;
 /**
  * Class ObjectTreeTest
  *
- * @group DB
  *
  * @package OCA\DAV\Tests\Unit\Connector\Sabre
  */
+#[\PHPUnit\Framework\Attributes\Group('DB')]
 class ObjectTreeTest extends \Test\TestCase {
 	public static function copyDataProvider(): array {
 		return [
@@ -39,9 +39,7 @@ class ObjectTreeTest extends \Test\TestCase {
 		];
 	}
 
-	/**
-	 * @dataProvider copyDataProvider
-	 */
+	#[\PHPUnit\Framework\Attributes\DataProvider('copyDataProvider')]
 	public function testCopy(string $sourcePath, string $targetPath, string $targetParent): void {
 		$view = $this->createMock(View::class);
 		$view->expects($this->once())
@@ -83,9 +81,7 @@ class ObjectTreeTest extends \Test\TestCase {
 		$objectTree->copy($sourcePath, $targetPath);
 	}
 
-	/**
-	 * @dataProvider copyDataProvider
-	 */
+	#[\PHPUnit\Framework\Attributes\DataProvider('copyDataProvider')]
 	public function testCopyFailNotCreatable($sourcePath, $targetPath, $targetParent): void {
 		$this->expectException(\Sabre\DAV\Exception\Forbidden::class);
 
@@ -124,9 +120,7 @@ class ObjectTreeTest extends \Test\TestCase {
 		$objectTree->copy($sourcePath, $targetPath);
 	}
 
-	/**
-	 * @dataProvider nodeForPathProvider
-	 */
+	#[\PHPUnit\Framework\Attributes\DataProvider('nodeForPathProvider')]
 	public function testGetNodeForPath(
 		string $inputFileName,
 		string $fileInfoQueryPath,

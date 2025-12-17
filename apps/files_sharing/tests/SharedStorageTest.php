@@ -1,4 +1,5 @@
 <?php
+
 /**
  * SPDX-FileCopyrightText: 2016-2024 Nextcloud GmbH and Nextcloud contributors
  * SPDX-FileCopyrightText: 2016 ownCloud, Inc.
@@ -24,9 +25,8 @@ use OCP\Share\IShare;
 
 /**
  * Class SharedStorageTest
- *
- * @group DB
  */
+#[\PHPUnit\Framework\Attributes\Group('DB')]
 class SharedStorageTest extends TestCase {
 	protected function setUp(): void {
 		parent::setUp();
@@ -62,8 +62,6 @@ class SharedStorageTest extends TestCase {
 
 	/**
 	 * if the parent of the mount point is gone then the mount point should move up
-	 *
-	 * @medium
 	 */
 	public function testParentOfMountPointIsGone(): void {
 
@@ -107,9 +105,6 @@ class SharedStorageTest extends TestCase {
 		$this->view->unlink($this->folder);
 	}
 
-	/**
-	 * @medium
-	 */
 	public function testRenamePartFile(): void {
 
 		// share to user
@@ -570,7 +565,7 @@ class SharedStorageTest extends TestCase {
 		$share->method('getShareOwner')->willReturn(self::TEST_FILES_SHARING_API_USER1);
 		$share->method('getNodeId')->willReturn(1);
 		$ownerView = $this->createMock(View::class);
-		$ownerView->method('getPath')->will($this->throwException(new NotFoundException()));
+		$ownerView->method('getPath')->willThrowException(new NotFoundException());
 		$storage = new SharedStorage([
 			'ownerView' => $ownerView,
 			'superShare' => $share,

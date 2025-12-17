@@ -11,10 +11,9 @@ namespace Test\Files\ObjectStore;
 use OCP\Files\ObjectStore\IObjectStore;
 
 class FailWriteObjectStore implements IObjectStore {
-	private $objectStore;
-
-	public function __construct(IObjectStore $objectStore) {
-		$this->objectStore = $objectStore;
+	public function __construct(
+		private IObjectStore $objectStore,
+	) {
 	}
 
 	public function getStorageId() {
@@ -40,5 +39,9 @@ class FailWriteObjectStore implements IObjectStore {
 
 	public function copyObject($from, $to) {
 		$this->objectStore->copyObject($from, $to);
+	}
+
+	public function preSignedUrl(string $urn, \DateTimeInterface $expiration): ?string {
+		return null;
 	}
 }

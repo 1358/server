@@ -1,4 +1,5 @@
 <?php
+
 /**
  * SPDX-FileCopyrightText: 2018 Nextcloud GmbH and Nextcloud contributors
  * SPDX-License-Identifier: AGPL-3.0-or-later
@@ -123,7 +124,7 @@ class CloudFederationShare implements ICloudFederationShare {
 	 * @since 14.0.0
 	 */
 	public function setProviderId($providerId) {
-		$this->share['providerId'] = $providerId;
+		$this->share['providerId'] = (string)$providerId;
 	}
 
 	/**

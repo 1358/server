@@ -28,9 +28,8 @@ use function time;
 
 /**
  * Class CalDavBackendTest
- *
- * @group DB
  */
+#[\PHPUnit\Framework\Attributes\Group('DB')]
 class CalDavBackendTest extends AbstractCalDavBackend {
 	public function testCalendarOperations(): void {
 		$calendarId = $this->createTestCalendar();
@@ -112,9 +111,7 @@ class CalDavBackendTest extends AbstractCalDavBackend {
 		];
 	}
 
-	/**
-	 * @dataProvider providesSharingData
-	 */
+	#[\PHPUnit\Framework\Attributes\DataProvider('providesSharingData')]
 	public function testCalendarSharing($userCanRead, $userCanWrite, $groupCanRead, $groupCanWrite, $add, $principals): void {
 		$logger = $this->createMock(\Psr\Log\LoggerInterface::class);
 		$config = $this->createMock(IConfig::class);
@@ -403,9 +400,7 @@ EOD;
 		$this->assertCount(0, $calendarObjects);
 	}
 
-	/**
-	 * @dataProvider providesCalendarQueryParameters
-	 */
+	#[\PHPUnit\Framework\Attributes\DataProvider('providesCalendarQueryParameters')]
 	public function testCalendarQuery($expectedEventsInResult, $propFilters, $compFilter): void {
 		$calendarId = $this->createTestCalendar();
 		$events = [];
@@ -692,9 +687,9 @@ EOS;
 	}
 
 	/**
-	 * @dataProvider providesSchedulingData
 	 * @param $objectData
 	 */
+	#[\PHPUnit\Framework\Attributes\DataProvider('providesSchedulingData')]
 	public function testScheduling($objectData): void {
 		$this->backend->createSchedulingObject(self::UNIT_TEST_USER, 'Sample Schedule', $objectData);
 
@@ -710,9 +705,7 @@ EOS;
 		$this->assertCount(0, $sos);
 	}
 
-	/**
-	 * @dataProvider providesCalDataForGetDenormalizedData
-	 */
+	#[\PHPUnit\Framework\Attributes\DataProvider('providesCalDataForGetDenormalizedData')]
 	public function testGetDenormalizedData($expected, $key, $calData): void {
 		try {
 			$actual = $this->backend->getDenormalizedData($calData);
@@ -878,9 +871,7 @@ EOD;
 		$this->assertEquals(count($search5), 0);
 	}
 
-	/**
-	 * @dataProvider searchDataProvider
-	 */
+	#[\PHPUnit\Framework\Attributes\DataProvider('searchDataProvider')]
 	public function testSearch(bool $isShared, array $searchOptions, int $count): void {
 		$calendarId = $this->createTestCalendar();
 

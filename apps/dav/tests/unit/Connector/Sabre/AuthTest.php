@@ -27,8 +27,8 @@ use Test\TestCase;
  * Class AuthTest
  *
  * @package OCA\DAV\Tests\unit\Connector\Sabre
- * @group DB
  */
+#[\PHPUnit\Framework\Attributes\Group('DB')]
 class AuthTest extends TestCase {
 	private ISession&MockObject $session;
 	private Session&MockObject $userSession;
@@ -196,7 +196,7 @@ class AuthTest extends TestCase {
 			->expects($this->once())
 			->method('logClientIn')
 			->with('MyTestUser', 'MyTestPassword')
-			->will($this->throwException(new PasswordLoginForbiddenException()));
+			->willThrowException(new PasswordLoginForbiddenException());
 		$this->session
 			->expects($this->once())
 			->method('close');

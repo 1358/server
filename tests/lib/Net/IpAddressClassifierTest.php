@@ -30,9 +30,7 @@ class IpAddressClassifierTest extends TestCase {
 		];
 	}
 
-	/**
-	 * @dataProvider publicIpAddressData
-	 */
+	#[\PHPUnit\Framework\Attributes\DataProvider('publicIpAddressData')]
 	public function testPublicAddress(string $ip): void {
 		$isLocal = $this->classifier->isLocalAddress($ip);
 
@@ -41,6 +39,8 @@ class IpAddressClassifierTest extends TestCase {
 
 	public static function localIpAddressData(): array {
 		return [
+			['127.0.0.1'],
+			['127.0.0.13'], // all 127.0.0.0/8 network is loopback address
 			['192.168.0.1'],
 			['fe80::200:5aee:feaa:20a2'],
 			['fe80::1fc4:15d8:78db:2319%enp4s0'], // v6 zone ID
@@ -54,9 +54,7 @@ class IpAddressClassifierTest extends TestCase {
 		];
 	}
 
-	/**
-	 * @dataProvider localIpAddressData
-	 */
+	#[\PHPUnit\Framework\Attributes\DataProvider('localIpAddressData')]
 	public function testLocalAddress(string $ip): void {
 		$isLocal = $this->classifier->isLocalAddress($ip);
 

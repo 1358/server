@@ -14,9 +14,7 @@ use OCP\Security\ICrypto;
 use OCP\Server;
 use Test\TestCase;
 
-/**
- * @group DB
- */
+#[\PHPUnit\Framework\Attributes\Group('DB')]
 class DBConfigServiceTest extends TestCase {
 	private IDBConnection $connection;
 	private DBConfigService $dbConfig;
@@ -70,7 +68,7 @@ class DBConfigServiceTest extends TestCase {
 		$this->dbConfig->addApplicable($id, DBConfigService::APPLICABLE_TYPE_GLOBAL, null);
 
 		$mount = $this->dbConfig->getMountById($id);
-		$this->assertEquals([
+		$this->assertEqualsCanonicalizing([
 			['type' => DBConfigService::APPLICABLE_TYPE_USER, 'value' => 'test', 'mount_id' => $id],
 			['type' => DBConfigService::APPLICABLE_TYPE_GROUP, 'value' => 'bar', 'mount_id' => $id],
 			['type' => DBConfigService::APPLICABLE_TYPE_GLOBAL, 'value' => null, 'mount_id' => $id]

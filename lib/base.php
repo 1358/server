@@ -12,6 +12,7 @@ use OC\Share20\GroupDeletedListener;
 use OC\Share20\Hooks;
 use OC\Share20\UserDeletedListener;
 use OC\Share20\UserRemovedListener;
+use OC\User\DisabledUserException;
 use OCP\EventDispatcher\IEventDispatcher;
 use OCP\Files\Events\BeforeFileSystemSetupEvent;
 use OCP\Group\Events\GroupDeletedEvent;
@@ -39,10 +40,6 @@ require_once 'public/Constants.php';
  * OC_autoload!
  */
 class OC {
-	/**
-	 * Associative array for autoloading. classname => filename
-	 */
-	public static array $CLASSPATH = [];
 	/**
 	 * The installation path for Nextcloud  on the server (e.g. /srv/http/nextcloud)
 	 */
@@ -73,8 +70,6 @@ class OC {
 	 */
 	public static bool $CLI = false;
 
-	public static \OC\Autoloader $loader;
-
 	public static \Composer\Autoload\ClassLoader $composerAutoloader;
 
 	public static \OC\Server $server;
@@ -88,7 +83,7 @@ class OC {
 	public static function initPaths(): void {
 		if (defined('PHPUNIT_CONFIG_DIR')) {
 			self::$configDir = OC::$SERVERROOT . '/' . PHPUNIT_CONFIG_DIR . '/';
-		} elseif (defined('PHPUNIT_RUN') and PHPUNIT_RUN and is_dir(OC::$SERVERROOT . '/tests/config/')) {
+		} elseif (defined('PHPUNIT_RUN') && PHPUNIT_RUN && is_dir(OC::$SERVERROOT . '/tests/config/')) {
 			self::$configDir = OC::$SERVERROOT . '/tests/config/';
 		} elseif ($dir = getenv('NEXTCLOUD_CONFIG_DIR')) {
 			self::$configDir = rtrim($dir, '/') . '/';
@@ -147,8 +142,8 @@ class OC {
 
 			// Resolve /nextcloud to /nextcloud/ to ensure to always have a trailing
 			// slash which is required by URL generation.
-			if (isset($_SERVER['REQUEST_URI']) && $_SERVER['REQUEST_URI'] === \OC::$WEBROOT &&
-					substr($_SERVER['REQUEST_URI'], -1) !== '/') {
+			if (isset($_SERVER['REQUEST_URI']) && $_SERVER['REQUEST_URI'] === \OC::$WEBROOT
+					&& substr($_SERVER['REQUEST_URI'], -1) !== '/') {
 				header('Location: ' . \OC::$WEBROOT . '/');
 				exit();
 			}
@@ -248,6 +243,7 @@ class OC {
 			// render error page
 			$template = Server::get(ITemplateManager::class)->getTemplate('', 'update.user', 'guest');
 			\OCP\Util::addScript('core', 'maintenance');
+			\OCP\Util::addScript('core', 'common');
 			\OCP\Util::addStyle('core', 'guest');
 			$template->printPage();
 			die();
@@ -291,8 +287,8 @@ class OC {
 				$tooBig = ($totalUsers > 50);
 			}
 		}
-		$ignoreTooBigWarning = isset($_GET['IKnowThatThisIsABigInstanceAndTheUpdateRequestCouldRunIntoATimeoutAndHowToRestoreABackup']) &&
-			$_GET['IKnowThatThisIsABigInstanceAndTheUpdateRequestCouldRunIntoATimeoutAndHowToRestoreABackup'] === 'IAmSuperSureToDoThis';
+		$ignoreTooBigWarning = isset($_GET['IKnowThatThisIsABigInstanceAndTheUpdateRequestCouldRunIntoATimeoutAndHowToRestoreABackup'])
+			&& $_GET['IKnowThatThisIsABigInstanceAndTheUpdateRequestCouldRunIntoATimeoutAndHowToRestoreABackup'] === 'IAmSuperSureToDoThis';
 
 		if ($disableWebUpdater || ($tooBig && !$ignoreTooBigWarning)) {
 			// send http status 503
@@ -388,16 +384,23 @@ class OC {
 		// prevents javascript from accessing php session cookies
 		ini_set('session.cookie_httponly', 'true');
 
-		// Do not initialize sessions for 'status.php' requests
-		// Monitoring endpoints can quickly flood session handlers
-		// and 'status.php' doesn't require sessions anyway
-		if (str_ends_with($request->getScriptName(), '/status.php')) {
-			return;
-		}
-
 		// set the cookie path to the Nextcloud directory
 		$cookie_path = OC::$WEBROOT ? : '/';
 		ini_set('session.cookie_path', $cookie_path);
+
+		// set the cookie domain to the Nextcloud domain
+		$cookie_domain = self::$config->getValue('cookie_domain', '');
+		if ($cookie_domain) {
+			ini_set('session.cookie_domain', $cookie_domain);
+		}
+
+		// Do not initialize sessions for 'status.php' requests
+		// Monitoring endpoints can quickly flood session handlers
+		// and 'status.php' doesn't require sessions anyway
+		// We still need to run the ini_set above so that same-site cookies use the correct configuration.
+		if (str_ends_with($request->getScriptName(), '/status.php')) {
+			return;
+		}
 
 		// Let the session name be changed in the initSession Hook
 		$sessionName = OC_Util::getInstanceId();
@@ -444,14 +447,14 @@ class OC {
 	}
 
 	private static function getSessionLifeTime(): int {
-		return Server::get(\OC\AllConfig::class)->getSystemValueInt('session_lifetime', 60 * 60 * 24);
+		return Server::get(IConfig::class)->getSystemValueInt('session_lifetime', 60 * 60 * 24);
 	}
 
 	/**
 	 * @return bool true if the session expiry should only be done by gc instead of an explicit timeout
 	 */
 	public static function hasSessionRelaxedExpiry(): bool {
-		return Server::get(\OC\AllConfig::class)->getSystemValueBool('session_relaxed_expiry', false);
+		return Server::get(IConfig::class)->getSystemValueBool('session_relaxed_expiry', false);
 	}
 
 	/**
@@ -576,6 +579,41 @@ class OC {
 		}
 	}
 
+	/**
+	 * This function adds some security related headers to all requests served via base.php
+	 * The implementation of this function has to happen here to ensure that all third-party
+	 * components (e.g. SabreDAV) also benefit from this headers.
+	 */
+	private static function addSecurityHeaders(): void {
+		/**
+		 * FIXME: Content Security Policy for legacy components. This
+		 * can be removed once \OCP\AppFramework\Http\Response from the AppFramework
+		 * is used everywhere.
+		 * @see \OCP\AppFramework\Http\Response::getHeaders
+		 */
+		$policy = 'default-src \'self\'; '
+			. 'script-src \'self\' \'nonce-' . \OC::$server->getContentSecurityPolicyNonceManager()->getNonce() . '\'; '
+			. 'style-src \'self\' \'unsafe-inline\'; '
+			. 'frame-src *; '
+			. 'img-src * data: blob:; '
+			. 'font-src \'self\' data:; '
+			. 'media-src *; '
+			. 'connect-src *; '
+			. 'object-src \'none\'; '
+			. 'base-uri \'self\'; ';
+		header('Content-Security-Policy:' . $policy);
+
+		// Send fallback headers for installations that don't have the possibility to send
+		// custom headers on the webserver side
+		if (getenv('modHeadersAvailable') !== 'true') {
+			header('Referrer-Policy: no-referrer'); // https://www.w3.org/TR/referrer-policy/
+			header('X-Content-Type-Options: nosniff'); // Disable sniffing the content type for IE
+			header('X-Frame-Options: SAMEORIGIN'); // Disallow iFraming from other domains
+			header('X-Permitted-Cross-Domain-Policies: none'); // https://www.adobe.com/devnet/adobe-media-server/articles/cross-domain-xml-for-streaming.html
+			header('X-Robots-Tag: noindex, nofollow'); // https://developers.google.com/webmasters/control-crawl-index/docs/robots_meta_tag
+		}
+	}
+
 	public static function init(): void {
 		// First handle PHP configuration and copy auth headers to the expected
 		// $_SERVER variable before doing anything Server object related
@@ -597,12 +635,6 @@ class OC {
 
 		// register autoloader
 		$loaderStart = microtime(true);
-		require_once __DIR__ . '/autoloader.php';
-		self::$loader = new \OC\Autoloader([
-			OC::$SERVERROOT . '/lib/private/legacy',
-		]);
-		spl_autoload_register([self::$loader, 'load']);
-		$loaderEnd = microtime(true);
 
 		self::$CLI = (php_sapi_name() == 'cli');
 
@@ -628,6 +660,10 @@ class OC {
 			print($e->getMessage());
 			exit();
 		}
+		$loaderEnd = microtime(true);
+
+		// Enable lazy loading if activated
+		\OC\AppFramework\Utility\SimpleContainer::$useLazyObjects = (bool)self::$config->getValue('enable_lazy_objects', true);
 
 		// setup the basic server
 		self::$server = new \OC\Server(\OC::$WEBROOT, self::$config);
@@ -655,9 +691,6 @@ class OC {
 		if (self::$config->getValue('loglevel') === ILogger::DEBUG) {
 			error_reporting(E_ALL);
 		}
-
-		$systemConfig = Server::get(\OC\SystemConfig::class);
-		self::registerAutoloaderCache($systemConfig);
 
 		// initialize intl fallback if necessary
 		OC_Util::isSetLocaleWorking();
@@ -692,6 +725,7 @@ class OC {
 			throw new \OCP\HintException('The PHP SimpleXML/PHP-XML extension is not installed.', 'Install the extension or make sure it is enabled.');
 		}
 
+		$systemConfig = Server::get(\OC\SystemConfig::class);
 		$appManager = Server::get(\OCP\App\IAppManager::class);
 		if ($systemConfig->getValue('installed', false)) {
 			$appManager->loadApps(['session']);
@@ -703,7 +737,7 @@ class OC {
 		self::checkConfig();
 		self::checkInstalled($systemConfig);
 
-		OC_Response::addSecurityHeaders();
+		self::addSecurityHeaders();
 
 		self::performSameSiteCookieProtection($config);
 
@@ -784,8 +818,6 @@ class OC {
 		// Make sure that the application class is not loaded before the database is setup
 		if ($systemConfig->getValue('installed', false)) {
 			$appManager->loadApp('settings');
-			/* Build core application to make sure that listeners are registered */
-			Server::get(\OC\Core\Application::class);
 		}
 
 		//make sure temporary files are cleaned up
@@ -975,23 +1007,6 @@ class OC {
 		}
 	}
 
-	protected static function registerAutoloaderCache(\OC\SystemConfig $systemConfig): void {
-		// The class loader takes an optional low-latency cache, which MUST be
-		// namespaced. The instanceid is used for namespacing, but might be
-		// unavailable at this point. Furthermore, it might not be possible to
-		// generate an instanceid via \OC_Util::getInstanceId() because the
-		// config file may not be writable. As such, we only register a class
-		// loader cache if instanceid is available without trying to create one.
-		$instanceId = $systemConfig->getValue('instanceid', null);
-		if ($instanceId) {
-			try {
-				$memcacheFactory = Server::get(\OCP\ICacheFactory::class);
-				self::$loader->setMemoryCache($memcacheFactory->createLocal('Autoloader'));
-			} catch (\Exception $ex) {
-			}
-		}
-	}
-
 	/**
 	 * Handle the request
 	 */
@@ -1008,6 +1023,7 @@ class OC {
 		}
 
 		$request = Server::get(IRequest::class);
+		$request->throwDecodingExceptionIfAny();
 		$requestPath = $request->getRawPathInfo();
 		if ($requestPath === '/heartbeat') {
 			return;
@@ -1046,7 +1062,27 @@ class OC {
 				// OAuth needs to support basic auth too, so the login is not valid
 				// inside Nextcloud and the Login exception would ruin it.
 				if ($request->getRawPathInfo() !== '/apps/oauth2/api/v1/token') {
-					self::handleLogin($request);
+					try {
+						self::handleLogin($request);
+					} catch (DisabledUserException $e) {
+						// Disabled users would not be seen as logged in and
+						// trying to log them in would fail, so the login
+						// exception is ignored for the themed stylesheets and
+						// images.
+						if ($request->getRawPathInfo() !== '/apps/theming/theme/default.css'
+							&& $request->getRawPathInfo() !== '/apps/theming/theme/light.css'
+							&& $request->getRawPathInfo() !== '/apps/theming/theme/dark.css'
+							&& $request->getRawPathInfo() !== '/apps/theming/theme/light-highcontrast.css'
+							&& $request->getRawPathInfo() !== '/apps/theming/theme/dark-highcontrast.css'
+							&& $request->getRawPathInfo() !== '/apps/theming/theme/opendyslexic.css'
+							&& $request->getRawPathInfo() !== '/apps/theming/image/background'
+							&& $request->getRawPathInfo() !== '/apps/theming/image/logo'
+							&& $request->getRawPathInfo() !== '/apps/theming/image/logoheader'
+							&& !str_starts_with($request->getRawPathInfo(), '/apps/theming/favicon')
+							&& !str_starts_with($request->getRawPathInfo(), '/apps/theming/icon')) {
+							throw $e;
+						}
+					}
 				}
 			}
 		}

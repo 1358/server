@@ -18,7 +18,6 @@ use OCA\User_LDAP\User\OfflineUser;
 use OCP\EventDispatcher\IEventDispatcher;
 use OCP\HintException;
 use OCP\IAppConfig;
-use OCP\IConfig;
 use OCP\IGroupManager;
 use OCP\IUserManager;
 use OCP\Server;
@@ -55,7 +54,6 @@ class Access extends LDAPUtility {
 		public Connection $connection,
 		public Manager $userManager,
 		private Helper $helper,
-		private IConfig $config,
 		private IUserManager $ncUserManager,
 		private LoggerInterface $logger,
 		private IAppConfig $appConfig,
@@ -341,8 +339,8 @@ class Access extends LDAPUtility {
 		$cr = $this->connection->getConnectionResource();
 		try {
 			// try PASSWD extended operation first
-			return @$this->invokeLDAPMethod('exopPasswd', $userDN, '', $password) ||
-				@$this->invokeLDAPMethod('modReplace', $userDN, $password);
+			return @$this->invokeLDAPMethod('exopPasswd', $userDN, '', $password)
+				|| @$this->invokeLDAPMethod('modReplace', $userDN, $password);
 		} catch (ConstraintViolationException $e) {
 			throw new HintException('Password change rejected.', Util::getL10N('user_ldap')->t('Password change rejected. Hint: %s', $e->getMessage()), (int)$e->getCode());
 		}
@@ -1572,14 +1570,12 @@ class Access extends LDAPUtility {
 	 * a *
 	 */
 	private function prepareSearchTerm(string $term): string {
-		$config = Server::get(IConfig::class);
-
-		$allowEnum = $config->getAppValue('core', 'shareapi_allow_share_dialog_user_enumeration', 'yes');
+		$allowEnum = $this->appConfig->getValueBool('core', 'shareapi_allow_share_dialog_user_enumeration', true);
 
 		$result = $term;
 		if ($term === '') {
 			$result = '*';
-		} elseif ($allowEnum !== 'no') {
+		} elseif ($allowEnum) {
 			$result = $term . '*';
 		}
 		return $result;
@@ -1811,8 +1807,8 @@ class Access extends LDAPUtility {
 			 * user. Instead we write a log message.
 			 */
 			$this->logger->info(
-				'Passed string does not resemble a valid GUID. Known UUID ' .
-				'({uuid}) probably does not match UUID configuration.',
+				'Passed string does not resemble a valid GUID. Known UUID '
+				. '({uuid}) probably does not match UUID configuration.',
 				['app' => 'user_ldap', 'uuid' => $guid]
 			);
 			return $guid;
